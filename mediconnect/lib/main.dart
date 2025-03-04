@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mediconnect/loginpage.dart';
+import 'package:mediconnect/signup.dart';
 import 'package:mediconnect/userchoice.dart';
 import 'package:mediconnect/appointment.dart';
 void main() {
@@ -36,7 +38,7 @@ class MainPage extends StatelessWidget {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => AppointmentPage()),
+              MaterialPageRoute(builder: (context) => SignUpScreen()),
             );
           },
           child: const Text('Get Started'),
