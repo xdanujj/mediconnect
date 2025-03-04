@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mediconnect/signup.dart';
 
 class LoginScreen extends StatelessWidget {
   @override
@@ -76,18 +77,16 @@ class LoginScreen extends StatelessWidget {
                     children: [
                       TextButton(
                         onPressed: () {
-                          // Handle Forgot Password
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => SignUpScreen()), // Navigate to Signup page
+                          );
                         },
-                        child: Text("Forgot Password?"),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          // Navigate to Signup Page
-                        },
-                        child: Text("Signup"),
+                        child: Text("Don't have an account? Signup here"),
                       ),
                     ],
-                  ),
+                  )
+
                 ],
               ),
             ),

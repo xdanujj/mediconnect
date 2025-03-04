@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mediconnect/loginpage.dart';
 
 
 class SignUpScreen extends StatelessWidget {
@@ -55,7 +56,10 @@ class SignUpScreen extends StatelessWidget {
                   Center(
                     child: TextButton(
                       onPressed: () {
-                        // Navigate to login screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => LoginScreen()), // Navigate to Signup page
+                        );
                       },
                       child: Text("Already Registered? Log in here."),
                     ),
