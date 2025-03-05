@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:mediconnect/loginpage.dart';
 
+class SignUpScreen extends StatefulWidget {
+  @override
+  _SignUpScreenState createState() => _SignUpScreenState();
+}
 
-class SignUpScreen extends StatelessWidget {
+class _SignUpScreenState extends State<SignUpScreen> {
+  DateTime? _selectedDate;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,7 +64,7 @@ class SignUpScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => LoginScreen()), // Navigate to Signup page
+                          MaterialPageRoute(builder: (context) => LoginScreen()),
                         );
                       },
                       child: Text("Already Registered? Log in here."),
@@ -114,12 +120,14 @@ class SignUpScreen extends StatelessWidget {
             onTap: () async {
               DateTime? pickedDate = await showDatePicker(
                 context: context,
-                initialDate: DateTime.now(),
+                initialDate: _selectedDate ?? DateTime.now(),
                 firstDate: DateTime(1900),
                 lastDate: DateTime.now(),
               );
               if (pickedDate != null) {
-                // Handle selected date
+                setState(() {
+                  _selectedDate = pickedDate;
+                });
               }
             },
             child: Container(
@@ -129,7 +137,12 @@ class SignUpScreen extends StatelessWidget {
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text("Select"),
+              child: Text(
+                _selectedDate != null
+                    ? "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}"
+                    : "Select",
+                style: TextStyle(color: Colors.black),
+              ),
             ),
           ),
         ],
