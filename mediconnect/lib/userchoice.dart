@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mediconnect/appointment.dart';
-import 'package:mediconnect/appointment.dart'; // Create this page
-//import 'package:mediconnect/           .dart'; // Create this page
+import 'package:mediconnect/appointment.dart'; // Ensure this page exists
 
 class UserChoicePage extends StatelessWidget {
   @override
@@ -17,85 +15,84 @@ class UserChoicePage extends StatelessWidget {
         centerTitle: true,
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildOptionButton(
-              context,
-              imagePath: 'assets/doctor.jpg',
-              title: 'Are You a Doctor?',
-              nextPage: AppointmentPage(),
-            ),
-            const SizedBox(height: 20),
-            _buildOptionButton(
-              context,
-              imagePath: 'assets/user.jpg',
-              title: 'Are You a Patient?',
-              nextPage: AppointmentPage(),
-            ),
-          ],
+      body: SingleChildScrollView( // Fixes bottom overflow
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+          child: Column(
+            children: [
+              _buildOptionButton(
+                context,
+                imagePath: 'assets/doctor.jpg',
+                title: 'I am a Doctor',
+                nextPage: AppointmentPage(),
+              ),
+              const SizedBox(height: 40), // Increased spacing
+              _buildOptionButton(
+                context,
+                imagePath: 'assets/patient.jpg',
+                title: 'I am a Patient',
+                nextPage: AppointmentPage(),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildOptionButton(BuildContext context, {required String imagePath, required String title, required Widget nextPage}) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => nextPage),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8,
-              spreadRadius: 2,
+    double screenHeight = MediaQuery.of(context).size.height;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: 150,
-              ),
+            child: Image.asset(
+              imagePath,
+              fit: BoxFit.cover, // Ensures image fills the container
+              width: double.infinity,
+              height: screenHeight * 0.3, // Adjusted height dynamically
             ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey[900], // Button color
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => nextPage),
-                  );
-                },
-                child: Text(
-                  title,
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueGrey[900], // Button color
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => nextPage),
+                );
+              },
+              child: Text(
+                title,
+                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
