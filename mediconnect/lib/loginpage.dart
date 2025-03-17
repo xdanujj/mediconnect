@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mediconnect/signup.dart';
+import 'package:mediconnect/userchoice.dart';
 
 class LoginScreen extends StatelessWidget {
   @override
@@ -65,7 +66,10 @@ class LoginScreen extends StatelessWidget {
                       minimumSize: Size(double.infinity, 50),
                     ),
                     onPressed: () {
-                      // Handle Login Action
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => UserChoicePage()),
+                      );
                     },
                     child: Text("Log In", style: TextStyle(color: Colors.white)),
                   ),
