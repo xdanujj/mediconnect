@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:mediconnect/supabaseservices.dart';
 import 'package:mediconnect/loginpage.dart';
 import 'package:mediconnect/signup.dart';
 import 'package:mediconnect/userchoice.dart';
-import 'package:mediconnect/appointment.dart';
-import 'package:mediconnect/sidemenu.dart';
+import 'package:mediconnect/appointmentpagewithdrawer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'AppointmentPageWithDrawer.dart'; // Import the SideMenu
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://uuevolmdxgnnaofgjiqd.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1ZXZvbG1keGdubmFvZmdqaXFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMTEwMjYsImV4cCI6MjA1Nzg4NzAyNn0.VBQvFIeeQjknfQmPDgkjesMf-2Jx8ulzGqLn7qnsUFs',
+  );
+
   runApp(const MediConnectApp());
 }
+
 
 class MediConnectApp extends StatelessWidget {
   const MediConnectApp({Key? key}) : super(key: key);
@@ -22,12 +30,12 @@ class MediConnectApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/Login', // Initial screen
+      initialRoute: '/login',
       routes: {
-        '/Login': (context) => LoginScreen(),
+        '/login': (context) => LoginScreen(),
         '/signup': (context) => SignUpScreen(),
         '/userchoice': (context) => UserChoicePage(),
-        '/appointment': (context) => AppointmentPageWithDrawer() // Use the updated page
+        '/appointment': (context) => AppointmentPageWithDrawer(),
       },
     );
   }

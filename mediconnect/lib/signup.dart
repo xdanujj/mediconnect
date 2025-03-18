@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mediconnect/loginpage.dart';
+import 'package:mediconnect/supabaseservices.dart';
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -7,117 +7,125 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  DateTime? _selectedDate;
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
+  final SupabaseService supabaseService = SupabaseService();
+
+  Future<void> signUpUser() async {
+    String name = nameController.text.trim();
+    String email = emailController.text.trim();
+    String password = passwordController.text.trim();
+    String confirmPassword = confirmPasswordController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill in all fields")),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Passwords do not match")),
+      );
+      return;
+    }
+
+    // Send name to supabase using signUp function
+    final result = await supabaseService.signUp(email, password, name);
+
+    if (result != null && !result.startsWith('Error')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Sign up successful. Please log in.")),
+      );
+      Navigator.pushReplacementNamed(context, '/login');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result ?? "Sign up failed. Please try again.")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Blue Header with White Medi-Connect Text
-            Stack(
-              children: [
-                Container(
-                  height: 200,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1C2B4B), // Dark Blue
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(50),
-                    ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Container(
+                height: 200,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1C2B4B),
+                  borderRadius: BorderRadius.only(bottomRight: Radius.circular(100)),
+                ),
+                child: const Center(
+                  child: Text(
+                    "Medi-Connect",
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ),
-                Positioned.fill(
-                  child: Center(
-                    child: const Text(
-                      "Medi-Connect",
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // Form Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Center(
-                    child: Text(
-                      "Sign Up",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1C2B4B),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  buildTextField("Name", "Enter Your Name"),
-                  buildTextField("Email", "Enter Your Email-ID"),
-                  buildTextField("Password", "******", isPassword: true),
-                  buildDatePicker(context),
-
-                  const SizedBox(height: 20),
-
-                  // Sign Up Button
-                  Center(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1C2B4B),
-                        minimumSize: const Size(double.infinity, 50),
-                      ),
-                      onPressed: () {
-                        // Handle sign-up action
-                      },
-                      child: const Text("Sign Up", style: TextStyle(color: Colors.white)),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Login Link
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => LoginScreen()),
-                        );
-                      },
-                      child: const Text("Already Registered? Log in here."),
-                    ),
-                  ),
-                ],
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Sign Up",
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1C2B4B)),
+                    ),
+                    const SizedBox(height: 20),
+                    buildTextField("Name", "Enter Your Name", controller: nameController),
+                    buildTextField("Email", "Enter Your Email", controller: emailController),
+                    buildTextField("Password", "******", isPassword: true, controller: passwordController),
+                    buildTextField("Confirm Password", "******", isPassword: true, controller: confirmPasswordController),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1C2B4B),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: signUpUser,
+                        child: const Text("Sign Up", style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(context, '/login');
+                      },
+                      child: const Text("Already have an account? Log in here"),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   // Reusable Text Field Widget
-  Widget buildTextField(String label, String hint, {bool isPassword = false}) {
+  Widget buildTextField(String label, String hint,
+      {bool isPassword = false, required TextEditingController controller}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
           TextFormField(
+            controller: controller,
             obscureText: isPassword,
             decoration: InputDecoration(
               hintText: hint,
@@ -126,51 +134,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Date Picker Widget
-  Widget buildDatePicker(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Date of Birth",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          InkWell(
-            onTap: () async {
-              DateTime? pickedDate = await showDatePicker(
-                context: context,
-                initialDate: _selectedDate ?? DateTime.now(),
-                firstDate: DateTime(1900),
-                lastDate: DateTime.now(),
-              );
-              if (pickedDate != null) {
-                setState(() {
-                  _selectedDate = pickedDate;
-                });
-              }
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                _selectedDate != null
-                    ? "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}"
-                    : "Select",
-                style: const TextStyle(color: Colors.black),
               ),
             ),
           ),

@@ -1,6 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:mediconnect/supabaseservices.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SideMenu extends StatelessWidget {
+class SideMenu extends StatefulWidget {
+  @override
+  _SideMenuState createState() => _SideMenuState();
+}
+
+class _SideMenuState extends State<SideMenu> {
+  final SupabaseService supabaseService = SupabaseService();
+  String displayName = "Loading...";
+  String email = "Loading...";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserData();
+  }
+
+  Future<void> fetchUserData() async {
+    final user = supabaseService.getCurrentUser();
+    if (user != null) {
+      // Fetch user data directly from Supabase
+      final userDetails = await Supabase.instance.client
+          .from('auth.users')
+          .select('email, user_metadata')
+          .eq('id', user.id)
+          .single();
+
+      setState(() {
+        displayName = userDetails['user_metadata']['display_name'] ?? 'User';
+        email = userDetails['email'] ?? 'No Email';
+      });
+    } else {
+      setState(() {
+        displayName = "Guest";
+        email = "Not available";
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
@@ -8,68 +47,40 @@ class SideMenu extends StatelessWidget {
         topRight: Radius.circular(30),
       ),
       child: Drawer(
-        backgroundColor: Colors.white, // Set Sidebar Background to White
+        backgroundColor: Colors.white,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            // Header with User's Name
             UserAccountsDrawerHeader(
-              accountName: const Text("Akshat Shah"),
-              accountEmail: const Text("akshatshah@gmail.com"),
+              accountName: Text(displayName),
+              accountEmail: Text(email),
               currentAccountPicture: const CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Icon(Icons.person, color: Color(0xFF1C2B4B), size: 40),
               ),
               decoration: const BoxDecoration(
-                color: Color(0xFF1C2B4B), // Keep Header Dark Blue
+                color: Color(0xFF1C2B4B),
               ),
             ),
-
-            // Menu Items
-            buildMenuItem(Icons.calendar_today, 'Your Appointments', () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Navigating to Appointments')),
-              );
-            }),
-            buildMenuItem(Icons.article_outlined, 'Health Articles', () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Navigating to Health Articles')),
-              );
-            }),
-            buildMenuItem(Icons.receipt_long, 'Prescriptions', () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Navigating to Prescriptions')),
-              );
-            }),
-            buildMenuItem(Icons.help_outline, 'Help', () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Navigating to Help')),
-              );
-            }),
-            buildMenuItem(Icons.person_outline, 'Profile', () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Navigating to Profile')),
-              );
-            }),
-            buildMenuItem(Icons.info_outline, 'About Us', () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Navigating to About Us')),
-              );
-            }),
-
+            buildMenuItem(Icons.calendar_today, 'Your Appointments', () {}),
+            buildMenuItem(Icons.article_outlined, 'Health Articles', () {}),
+            buildMenuItem(Icons.receipt_long, 'Prescriptions', () {}),
+            buildMenuItem(Icons.help_outline, 'Help', () {}),
+            buildMenuItem(Icons.person_outline, 'Profile', () {}),
+            buildMenuItem(Icons.info_outline, 'About Us', () {}),
             const Divider(),
-
-            // Logout Option
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text(
                 'Log Out',
                 style: TextStyle(color: Colors.red),
               ),
-              onTap: () {
+              onTap: () async {
+                await supabaseService.signOut();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Logging Out')),
+                  const SnackBar(content: Text('Logged Out Successfully')),
                 );
+                Navigator.pushReplacementNamed(context, '/login');
               },
             ),
           ],
