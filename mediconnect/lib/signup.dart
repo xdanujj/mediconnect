@@ -16,49 +16,76 @@ class _SignUpScreenState extends State<SignUpScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Color(0xFF1C2B4B), // Dark Blue
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(50),
+            // Blue Header with White Medi-Connect Text
+            Stack(
+              children: [
+                Container(
+                  height: 200,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1C2B4B), // Dark Blue
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(50),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Text(
+                Positioned.fill(
+                  child: Center(
+                    child: const Text(
                       "Medi-Connect",
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: Colors.white,
                       ),
                     ),
                   ),
-                  SizedBox(height: 20),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Form Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Center(
+                    child: Text(
+                      "Sign Up",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1C2B4B),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   buildTextField("Name", "Enter Your Name"),
                   buildTextField("Email", "Enter Your Email-ID"),
                   buildTextField("Password", "******", isPassword: true),
                   buildDatePicker(context),
-                  SizedBox(height: 20),
+
+                  const SizedBox(height: 20),
+
+                  // Sign Up Button
                   Center(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF1C2B4B),
-                        minimumSize: Size(double.infinity, 50),
+                        backgroundColor: const Color(0xFF1C2B4B),
+                        minimumSize: const Size(double.infinity, 50),
                       ),
                       onPressed: () {
                         // Handle sign-up action
                       },
-                      child: Text("Sign up", style: TextStyle(color: Colors.white)),
+                      child: const Text("Sign Up", style: TextStyle(color: Colors.white)),
                     ),
                   ),
-                  SizedBox(height: 10),
+
+                  const SizedBox(height: 10),
+
+                  // Login Link
                   Center(
                     child: TextButton(
                       onPressed: () {
@@ -67,7 +94,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           MaterialPageRoute(builder: (context) => LoginScreen()),
                         );
                       },
-                      child: Text("Already Registered? Log in here."),
+                      child: const Text("Already Registered? Log in here."),
                     ),
                   ),
                 ],
@@ -79,15 +106,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
+  // Reusable Text Field Widget
   Widget buildTextField(String label, String hint, {bool isPassword = false}) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.only(bottom: 15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           TextFormField(
             obscureText: isPassword,
@@ -106,13 +134,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
+  // Date Picker Widget
   Widget buildDatePicker(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.only(bottom: 15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             "Date of Birth",
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
@@ -132,7 +161,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             },
             child: Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(10),
@@ -141,7 +170,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 _selectedDate != null
                     ? "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}"
                     : "Select",
-                style: TextStyle(color: Colors.black),
+                style: const TextStyle(color: Colors.black),
               ),
             ),
           ),

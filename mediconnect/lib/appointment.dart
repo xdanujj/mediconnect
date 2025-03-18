@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'sidemenu.dart'; // Import the SideMenu
+
 class AppointmentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -12,10 +14,16 @@ class AppointmentPage extends StatelessWidget {
         ),
         centerTitle: true,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {},
+        iconTheme: const IconThemeData(color: Colors.white), // White sidebar icon
+      ),
+      drawer: Container(
+        decoration: BoxDecoration(
+            borderRadius: const BorderRadius.only(
+              topRight: Radius.circular(30),
+            )
         ),
+        //color: Colors.white, // Set the sidebar to white
+        child: SideMenu(),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -56,20 +64,19 @@ class AppointmentPage extends StatelessWidget {
         unselectedItemColor: Colors.black,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home,color: Colors.black),
+            icon: Icon(Icons.home, color: Colors.black),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_search,color: Colors.black),
+            icon: Icon(Icons.person_search, color: Colors.black),
             label: 'Doctors',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today,color: Colors.black),
+            icon: Icon(Icons.calendar_today, color: Colors.black),
             label: 'Appointment',
-
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person,color: Colors.black),
+            icon: Icon(Icons.person, color: Colors.black),
             label: 'Profile',
           ),
         ],
@@ -91,10 +98,9 @@ class AppointmentPage extends StatelessWidget {
         style: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.black
+          color: Colors.black,
         ),
       ),
     );
   }
 }
-

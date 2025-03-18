@@ -7,91 +7,83 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
+      body: SafeArea(
         child: Column(
           children: [
             // Dark Blue Header with Curved Bottom-Right
-            Stack(
-              children: [
-                Container(
-                  height: 220, // Adjusted to match your image
-                  decoration: BoxDecoration(
-                    color: Color(0xFF1C2B4B), // Dark Blue
-                    borderRadius: BorderRadius.only(
-                      bottomRight: Radius.circular(100), // Curved corner
-                    ),
+            Expanded(
+              flex: 3, // Takes 3 parts of available space
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1C2B4B), // Dark Blue
+                  borderRadius: BorderRadius.only(
+                    bottomRight: Radius.circular(100), // Curved corner
                   ),
                 ),
-                Positioned(
-                  top: 60,
-                  left: 20,
+                child: const Center(
                   child: Text(
                     "Medi-Connect",
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
 
-            SizedBox(height: 20),
-
             // Login Form Section
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "Login",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1C2B4B), // Matching Dark Blue Color
+            Expanded(
+              flex: 5, // Takes 5 parts of available space
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Login",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1C2B4B),
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 20),
-                  buildTextField("NAME", "Enter Your Name"),
-                  buildTextField("PASSWORD", "******", isPassword: true),
+                    const SizedBox(height: 20),
+                    buildTextField("NAME", "Enter Your Name"),
+                    buildTextField("PASSWORD", "******", isPassword: true),
 
-                  SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                  // Log In Button
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF1C2B4B), // Dark Blue Button
-                      minimumSize: Size(double.infinity, 50),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
+                    // Log In Button
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1C2B4B),
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => UserChoicePage()),
-                      );
-                    },
-                    child: Text("Log In", style: TextStyle(color: Colors.white)),
-                  ),
+                        );
+                      },
+                      child: const Text("Log In", style: TextStyle(color: Colors.white)),
+                    ),
 
-                  SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-                  // Forgot Password & Signup Links
-                  Column(
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => SignUpScreen()), // Navigate to Signup page
-                          );
-                        },
-                        child: Text("Don't have an account? Signup here"),
-                      ),
-                    ],
-                  )
-
-                ],
+                    // Signup Link
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => SignUpScreen()),
+                        );
+                      },
+                      child: const Text("Don't have an account? Signup here"),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -103,13 +95,13 @@ class LoginScreen extends StatelessWidget {
   // Reusable Text Field Widget
   Widget buildTextField(String label, String hint, {bool isPassword = false}) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.only(bottom: 15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           TextFormField(
             obscureText: isPassword,
