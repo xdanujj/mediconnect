@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mediconnect/appointment.dart'; // Ensure this page exists
+import 'package:mediconnect/appointment.dart';
+
+import 'package:mediconnect/doctorprofile.dart'; // Ensure this page exists
 
 class UserChoicePage extends StatelessWidget {
   @override
@@ -24,7 +26,7 @@ class UserChoicePage extends StatelessWidget {
                 context,
                 imagePath: 'assets/doctor.jpg',
                 title: 'I am a Doctor',
-                nextPage: AppointmentPage(),
+                nextPage: DoctorProfileScreen(),
               ),
               const SizedBox(height: 40), // Increased spacing
               _buildOptionButton(
