@@ -18,20 +18,35 @@ class _SideMenuState extends State<SideMenu> {
     fetchUserData();
   }
 
+  // ✅ Fetch User Data from Profiles Table
   Future<void> fetchUserData() async {
     final user = supabaseService.getCurrentUser();
     if (user != null) {
-      // Fetch user data directly from Supabase
-      final userDetails = await Supabase.instance.client
-          .from('auth.users')
-          .select('email, user_metadata')
-          .eq('id', user.id)
-          .single();
+      try {
+        // Fetch profile details from the 'profiles' table
+        final userDetails = await Supabase.instance.client
+            .from('profiles')
+            .select('name, email')
+            .eq('id', user.id)
+            .maybeSingle();
 
-      setState(() {
-        displayName = userDetails['user_metadata']['display_name'] ?? 'User';
-        email = userDetails['email'] ?? 'No Email';
-      });
+        if (userDetails != null) {
+          setState(() {
+            displayName = userDetails['name'] ?? 'User';
+            email = userDetails['email'] ?? 'No Email';
+          });
+        } else {
+          setState(() {
+            displayName = "Profile Not Found";
+            email = "Not available";
+          });
+        }
+      } catch (e) {
+        setState(() {
+          displayName = "Error loading profile";
+          email = "Error: $e";
+        });
+      }
     } else {
       setState(() {
         displayName = "Guest";

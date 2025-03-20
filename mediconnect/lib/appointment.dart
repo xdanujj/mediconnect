@@ -18,11 +18,10 @@ class AppointmentPage extends StatelessWidget {
       ),
       drawer: Container(
         decoration: BoxDecoration(
-            borderRadius: const BorderRadius.only(
-              topRight: Radius.circular(30),
-            )
+          borderRadius: const BorderRadius.only(
+            topRight: Radius.circular(30),
+          ),
         ),
-        //color: Colors.white, // Set the sidebar to white
         child: SideMenu(),
       ),
       body: Padding(
@@ -62,21 +61,23 @@ class AppointmentPage extends StatelessWidget {
         backgroundColor: Colors.blueGrey[900],
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.black,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Colors.black),
+            icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_search, color: Colors.black),
+            icon: Icon(Icons.person_search),
             label: 'Doctors',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today, color: Colors.black),
+            icon: Icon(Icons.calendar_today),
             label: 'Appointment',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person, color: Colors.black),
+            icon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],

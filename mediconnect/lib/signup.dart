@@ -33,10 +33,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    // Send name to supabase using signUp function
-    final result = await supabaseService.signUp(email, password, name);
+    final result = await supabaseService.signUp(name, email, password);
 
-    if (result != null && !result.startsWith('Error')) {
+    if (result == "Success") {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Sign up successful. Please log in.")),
       );
@@ -47,6 +46,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -75,29 +75,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 20),
-                    const Text(
-                      "Sign Up",
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1C2B4B)),
-                    ),
-                    const SizedBox(height: 20),
                     buildTextField("Name", "Enter Your Name", controller: nameController),
                     buildTextField("Email", "Enter Your Email", controller: emailController),
                     buildTextField("Password", "******", isPassword: true, controller: passwordController),
                     buildTextField("Confirm Password", "******", isPassword: true, controller: confirmPasswordController),
                     const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1C2B4B),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: signUpUser,
-                        child: const Text("Sign Up", style: TextStyle(color: Colors.white)),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1C2B4B),
+                        minimumSize: const Size(double.infinity, 50),
                       ),
+                      onPressed: signUpUser,
+                      child: const Text("Sign Up", style: TextStyle(color: Colors.white)),
                     ),
                     TextButton(
                       onPressed: () {
@@ -115,7 +104,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Reusable Text Field Widget
   Widget buildTextField(String label, String hint,
       {bool isPassword = false, required TextEditingController controller}) {
     return Padding(

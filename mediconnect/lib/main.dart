@@ -40,3 +40,15 @@ class MediConnectApp extends StatelessWidget {
     );
   }
 }
+
+
+ /*
+import 'package:flutter/material.dart';
+
+import 'AppointmentScreen.dart';
+
+void main() {
+  runApp(MaterialApp(home: AppointmentScreen()));
+}
+
+  */

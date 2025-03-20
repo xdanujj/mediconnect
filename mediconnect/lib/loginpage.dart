@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mediconnect/signup.dart';
-import 'package:mediconnect/userchoice.dart';
 import 'package:mediconnect/supabaseservices.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -25,16 +23,17 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    // Perform Sign In using Supabase
     final result = await supabaseService.signIn(email, password);
 
-    if (result != null && !result.startsWith('Error')) {
+    if (result != null && result == "Login successful") {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Login Successful!")),
       );
       Navigator.pushReplacementNamed(context, '/userchoice');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login failed. Incorrect email or password. Please try again.")),
+        SnackBar(content: Text(result ?? "Login failed. Please try again.")),
       );
     }
   }
@@ -96,7 +95,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // Reusable Text Field Widget
-  Widget buildTextField(String label, String hint, {bool isPassword = false, required TextEditingController controller}) {
+  Widget buildTextField(String label, String hint,
+      {bool isPassword = false, required TextEditingController controller}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: Column(
