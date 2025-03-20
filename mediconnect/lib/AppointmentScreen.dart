@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(MaterialApp(home: AppointmentScreen()));
-}
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppointmentScreen extends StatefulWidget {
   @override
@@ -10,65 +7,191 @@ class AppointmentScreen extends StatefulWidget {
 }
 
 class _AppointmentScreenState extends State<AppointmentScreen> {
-  final List<String> months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  int selectedMonthIndex = DateTime.now().month - 1;
-  int selectedYear = DateTime.now().year;
+  DateTime currentDate = DateTime.now();
+  DateTime selectedDate = DateTime.now();
+  String userName = 'User';
+  String? selectedSlot;
+  String? selectedDoctor;
 
-  final List<Doctor> doctors = [
-    Doctor(
-      name: 'Olivia Wilson',
-      specialty: 'Consultant - Physiotherapy',
-      rating: 4.9,
-      reviews: 37,
-      image: 'assets/doctor1.png',
-      timeSlots: ['09:00', '10:00', '10:30', '11:00', '11:30', '12:00',
-        '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
-        '16:00', '16:30', '17:00'],
-    ),
-    Doctor(
-      name: 'Jonathan Patterson',
-      specialty: 'Consultant - Physiotherapy',
-      rating: 4.9,
-      reviews: 37,
-      image: 'assets/doctor2.png',
-      timeSlots: ['09:00', '10:00', '10:30', '11:00', '11:30', '12:00',
-        '13:00'],
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    fetchUserName();
+  }
+
+  // ✅ Fetch User's Name from Supabase
+  Future<void> fetchUserName() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final response = await Supabase.instance.client
+            .from('profiles')
+            .select('name')
+            .eq('id', user.id)
+            .single();
+
+        setState(() {
+          userName = response['name'] ?? 'User';
+        });
+      }
+    } catch (error) {
+      print('Error fetching user name: $error');
+    }
+  }
+
+  // ✅ Open Calendar and Select Date
+  Future<void> _selectDate() async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        selectedDate = pickedDate;
+        selectedSlot = null;
+        selectedDoctor = null; // Reset selection on date change
+      });
+    }
+  }
+
+  // ✅ Book Now Function
+  void _bookNow() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Appointment booked with $selectedDoctor on ${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year} at $selectedSlot!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blueGrey[900],
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        backgroundColor: Colors.blueGrey[900],
         title: GestureDetector(
-          onTap: _selectMonth,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('${months[selectedMonthIndex]} $selectedYear',
-                  style: const TextStyle(color: Colors.white)),
-              const Icon(Icons.arrow_drop_down, color: Colors.white),
-            ],
+          onTap: _selectDate,
+          child: Text(
+            '${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year}',
+            style: const TextStyle(
+              fontSize: 18,
+              decoration: TextDecoration.underline,
+              color: Colors.white,
+            ),
           ),
         ),
         centerTitle: true,
+        backgroundColor: const Color(0xFF1C2B4B),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Column(
+        children: [
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              'Hello, $userName 👋',
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1C2B4B)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              'Available Doctors',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1C2B4B)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView(
+              children: [
+                buildDoctorCard('Olivia Wilson', 'Consultant - Physiotherapy', 4.9, 37),
+                buildDoctorCard('Jonathan Patterson', 'Consultant - Physiotherapy', 4.8, 42),
+              ],
+            ),
+          ),
+          if (selectedSlot != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+              child: ElevatedButton(
+                onPressed: _bookNow,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1C2B4B),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: const Text('Book Now', style: TextStyle(fontSize: 18)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Build Doctor Card
+  Widget buildDoctorCard(String name, String title, double rating, int reviews) {
+    return Card(
+      elevation: 6,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDateBar(),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                itemCount: doctors.length,
-                itemBuilder: (context, index) {
-                  return _buildDoctorCard(doctors[index]);
+            Row(
+              children: [
+                const CircleAvatar(
+                  backgroundColor: Color(0xFF1C2B4B),
+                  radius: 30,
+                  child: Icon(Icons.person, color: Colors.white, size: 30),
+                ),
+                const SizedBox(width: 15),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: const TextStyle(color: Color(0xFF1C2B4B), fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(title, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.star, color: Colors.yellow, size: 16),
+                        Text(' $rating ($reviews Reviews)', style: const TextStyle(color: Colors.black54)),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: List.generate(
+                10,
+                    (index) {
+                  final time = '${9 + (index ~/ 2)}:${index % 2 == 0 ? '00' : '30'}';
+                  return ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        selectedSlot = time;
+                        selectedDoctor = name; // Track the selected doctor
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: (selectedSlot == time && selectedDoctor == name)
+                          ? Colors.green
+                          : const Color(0xFF1C2B4B),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(time),
+                  );
                 },
               ),
             ),
@@ -78,175 +201,12 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     );
   }
 
-  // Function to Show Month Picker
-  void _selectMonth() async {
-    final selected = await showModalBottomSheet<int>(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          height: 300,
-          child: ListView.builder(
-            itemCount: months.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text('${months[index]} $selectedYear'),
-                onTap: () {
-                  Navigator.pop(context, index);
-                },
-              );
-            },
-          ),
-        );
-      },
-    );
-
-    if (selected != null) {
-      setState(() {
-        selectedMonthIndex = selected;
-      });
-    }
+  // ✅ Helper to Get Month Name
+  String _getMonthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
   }
-
-  // Generate Dates Based on Selected Month and Year
-  List<DateTime> _generateDatesForMonth() {
-    int daysInMonth = DateTime(selectedYear, selectedMonthIndex + 1, 0).day;
-    return List<DateTime>.generate(daysInMonth, (index) =>
-        DateTime(selectedYear, selectedMonthIndex + 1, index + 1));
-  }
-
-  // Date Bar UI with Horizontal Scrolling
-  Widget _buildDateBar() {
-    List<DateTime> dates = _generateDatesForMonth();
-    DateTime today = DateTime.now();
-
-    return SizedBox(
-      height: 80,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: dates.map((date) {
-            bool isToday = date.year == today.year &&
-                date.month == today.month &&
-                date.day == today.day;
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              decoration: BoxDecoration(
-                color: isToday ? Colors.blueAccent : Colors.blueGrey[800],
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][date.weekday - 1],
-                    style: const TextStyle(color: Colors.white54),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    '${date.day}',
-                    style: TextStyle(
-                      color: isToday ? Colors.white : Colors.white70,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  // Doctor Card UI
-  Widget _buildDoctorCard(Doctor doctor) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey[800],
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundImage: AssetImage(doctor.image),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    doctor.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    doctor.specialty,
-                    style: const TextStyle(color: Colors.white54),
-                  ),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.yellow, size: 18),
-                      Text(
-                        '${doctor.rating} (${doctor.reviews} Reviews)',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: doctor.timeSlots.map((time) {
-              return _buildTimeSlot(time);
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Time Slot UI
-  Widget _buildTimeSlot(String time) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey[900],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blueAccent),
-      ),
-      child: Text(
-        time,
-        style: const TextStyle(color: Colors.white),
-      ),
-    );
-  }
-}
-
-// Doctor Model
-class Doctor {
-  final String name;
-  final String specialty;
-  final double rating;
-  final int reviews;
-  final String image;
-  final List<String> timeSlots;
-
-  Doctor({
-    required this.name,
-    required this.specialty,
-    required this.rating,
-    required this.reviews,
-    required this.image,
-    required this.timeSlots,
-  });
 }
