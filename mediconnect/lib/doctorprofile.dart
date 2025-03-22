@@ -12,15 +12,54 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
-  final _specialityController = TextEditingController();
   final _descriptionController = TextEditingController();
   File? _profileImage;
 
-  // ✅ Pick Image using Image Picker
+  String? _selectedSpeciality;
+  final List<String> _specialities = [
+    'General Physician',
+    'Cardiologist',
+    'Dermatologist',
+    'Neurologist',
+    'Pediatrician',
+    'Psychiatrist',
+    'Orthopedic',
+    'Gynecologist',
+    'Dentist'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfProfileExists();
+  }
+
+  // ✅ Check if the doctor profile already exists
+  Future<void> _checkIfProfileExists() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final response = await Supabase.instance.client
+        .from('doctors')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (response != null) {
+      // Profile exists, redirect to dashboard
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile already exists. Redirecting to dashboard...")),
+        );
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      });
+    }
+  }
+
+  // ✅ Image Picking
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
     if (image != null) {
       setState(() {
         _profileImage = File(image.path);
@@ -28,23 +67,20 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     }
   }
 
-  // ✅ Upload Image to Supabase Storage
+  // ✅ Upload Image to Supabase
   Future<String?> _uploadImage(File imageFile) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
-
       if (user == null) return null;
 
       final imagePath = 'profilepictures/${user.id}.jpg';
 
-      // Upload to Supabase Storage
       await Supabase.instance.client.storage.from('profilepictures').upload(
         imagePath,
         imageFile,
         fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
       );
 
-      // Generate Public URL
       final publicUrl = Supabase.instance.client.storage
           .from('profilepictures')
           .getPublicUrl(imagePath);
@@ -56,13 +92,11 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     }
   }
 
-  // ✅ Submit Doctor's Details to Supabase
+  // ✅ Submit Doctor Details
   Future<void> _submitDoctorDetails() async {
     if (!_formKey.currentState!.validate()) return;
-
     try {
       final user = Supabase.instance.client.auth.currentUser;
-
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("User not logged in")),
@@ -79,7 +113,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
         'id': user.id,
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
-        'speciality': _specialityController.text.trim(),
+        'speciality': _selectedSpeciality,
         'description': _descriptionController.text.trim(),
         'profile_image': imageUrl,
       });
@@ -88,10 +122,8 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
         const SnackBar(content: Text("Profile saved successfully!")),
       );
 
-      // Clear fields
       _firstNameController.clear();
       _lastNameController.clear();
-      _specialityController.clear();
       _descriptionController.clear();
       setState(() => _profileImage = null);
     } catch (error) {
@@ -101,6 +133,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     }
   }
 
+  // ✅ Build UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,7 +149,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ✅ Profile Picture
               Center(
                 child: Column(
                   children: [
@@ -134,22 +166,15 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-
-                    // ✅ Instruction Text
                     const Text(
-                      "Upload Your Profile Pic Here",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic,
-                      ),
+                      "Upload your profile photo here",
+                      style: TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 10),
 
-
-              // ✅ First Name
               const Text("First Name", style: TextStyle(fontWeight: FontWeight.bold)),
               TextFormField(
                 controller: _firstNameController,
@@ -158,7 +183,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
               ),
               const SizedBox(height: 10),
 
-              // ✅ Last Name
               const Text("Last Name", style: TextStyle(fontWeight: FontWeight.bold)),
               TextFormField(
                 controller: _lastNameController,
@@ -167,16 +191,23 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
               ),
               const SizedBox(height: 10),
 
-              // ✅ Speciality
               const Text("Speciality", style: TextStyle(fontWeight: FontWeight.bold)),
-              TextFormField(
-                controller: _specialityController,
+              DropdownButtonFormField<String>(
+                value: _selectedSpeciality,
+                onChanged: (value) {
+                  setState(() => _selectedSpeciality = value);
+                },
+                items: _specialities.map((speciality) {
+                  return DropdownMenuItem(
+                    value: speciality,
+                    child: Text(speciality),
+                  );
+                }).toList(),
                 decoration: const InputDecoration(border: OutlineInputBorder()),
-                validator: (value) => value!.isEmpty ? "Enter speciality" : null,
+                validator: (value) => value == null ? "Select a speciality" : null,
               ),
               const SizedBox(height: 10),
 
-              // ✅ Description
               const Text("Short Description", style: TextStyle(fontWeight: FontWeight.bold)),
               TextFormField(
                 controller: _descriptionController,
@@ -186,7 +217,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ✅ Submit Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
