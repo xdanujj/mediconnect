@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,31 +11,43 @@ class DoctorProfileScreen extends StatefulWidget {
 
 class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
   final _descriptionController = TextEditingController();
   File? _profileImage;
+  File? _certificateFile;
+  String? _doctorName;
 
   String? _selectedSpeciality;
   final List<String> _specialities = [
-    'General Physician',
-    'Cardiologist',
-    'Dermatologist',
-    'Neurologist',
-    'Pediatrician',
-    'Psychiatrist',
-    'Orthopedic',
-    'Gynecologist',
-    'Dentist'
+    'General Physician', 'Cardiologist', 'Dermatologist', 'Neurologist',
+    'Pediatrician', 'Psychiatrist', 'Orthopedic', 'Gynecologist',
+    'Ophthalmologist', 'Nephrologist', 'Urologist', 'Oncologist', 'Dentist'
   ];
 
   @override
   void initState() {
     super.initState();
+    _fetchDoctorName();
     _checkIfProfileExists();
   }
 
-  // ✅ Check if the doctor profile already exists
+  // ✅ Fetch Doctor's Name from Profiles Table
+  Future<void> _fetchDoctorName() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final response = await Supabase.instance.client
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (response != null) {
+      setState(() {
+        _doctorName = response['name'];
+      });
+    }
+  }
+
   Future<void> _checkIfProfileExists() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -46,7 +59,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
         .maybeSingle();
 
     if (response != null) {
-      // Profile exists, redirect to dashboard
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Profile already exists. Redirecting to dashboard...")),
@@ -56,7 +68,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     }
   }
 
-  // ✅ Image Picking
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -67,32 +78,41 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     }
   }
 
-  // ✅ Upload Image to Supabase
-  Future<String?> _uploadImage(File imageFile) async {
+  Future<void> _pickCertificate() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+    if (result != null) {
+      setState(() {
+        _certificateFile = File(result.files.single.path!);
+      });
+    }
+  }
+
+  Future<String?> _uploadFile(File file, String folder, String extension) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return null;
 
-      final imagePath = 'profilepictures/${user.id}.jpg';
+      final filePath = '$folder/${user.id}.$extension';
 
-      await Supabase.instance.client.storage.from('profilepictures').upload(
-        imagePath,
-        imageFile,
+      await Supabase.instance.client.storage.from(folder).upload(
+        filePath,
+        file,
         fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
       );
 
       final publicUrl = Supabase.instance.client.storage
-          .from('profilepictures')
-          .getPublicUrl(imagePath);
+          .from(folder)
+          .getPublicUrl(filePath);
 
       return publicUrl;
     } catch (e) {
-      print("Image upload error: $e");
+      print("File upload error: $e");
       return null;
     }
   }
-
-  // ✅ Submit Doctor Details
   Future<void> _submitDoctorDetails() async {
     if (!_formKey.currentState!.validate()) return;
     try {
@@ -106,26 +126,49 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
       String? imageUrl;
       if (_profileImage != null) {
-        imageUrl = await _uploadImage(_profileImage!);
+        imageUrl = await _uploadFile(_profileImage!, 'profilepictures', 'jpg');
+      }
+
+      String? certificateUrl;
+      if (_certificateFile != null) {
+        certificateUrl = await _uploadFile(_certificateFile!, 'certifications', 'pdf');
       }
 
       await Supabase.instance.client.from('doctors').upsert({
         'id': user.id,
-        'first_name': _firstNameController.text.trim(),
-        'last_name': _lastNameController.text.trim(),
         'speciality': _selectedSpeciality,
         'description': _descriptionController.text.trim(),
         'profile_image': imageUrl,
+        'certificate_url': certificateUrl,
       });
 
+      // Show "Waiting for verification" message
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile saved successfully!")),
+        const SnackBar(content: Text("Waiting for verification...")),
       );
 
-      _firstNameController.clear();
-      _lastNameController.clear();
-      _descriptionController.clear();
-      setState(() => _profileImage = null);
+      // Wait for 2 seconds
+      await Future.delayed(const Duration(seconds: 2));
+
+      // Navigate to the "Coming Soon" page without a new file
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Scaffold(
+              appBar: AppBar(title: const Text("Coming Soon")),
+              body: const Center(
+                child: Text(
+                  "This feature is under development. Stay tuned!",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error saving profile: $error")),
@@ -133,7 +176,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     }
   }
 
-  // ✅ Build UI
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -166,29 +209,14 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      "Upload your profile photo here",
-                      style: TextStyle(color: Colors.grey),
-                    ),
+                    const Text("Upload your profile photo here", style: TextStyle(color: Colors.grey)),
                   ],
                 ),
               ),
               const SizedBox(height: 10),
 
-              const Text("First Name", style: TextStyle(fontWeight: FontWeight.bold)),
-              TextFormField(
-                controller: _firstNameController,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-                validator: (value) => value!.isEmpty ? "Enter first name" : null,
-              ),
-              const SizedBox(height: 10),
-
-              const Text("Last Name", style: TextStyle(fontWeight: FontWeight.bold)),
-              TextFormField(
-                controller: _lastNameController,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-                validator: (value) => value!.isEmpty ? "Enter last name" : null,
-              ),
+              if (_doctorName != null)
+                Text("Name: $_doctorName", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
 
               const Text("Speciality", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -214,6 +242,21 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                 maxLines: 3,
                 decoration: const InputDecoration(border: OutlineInputBorder()),
                 validator: (value) => value!.isEmpty ? "Enter description" : null,
+              ),
+              const SizedBox(height: 10),
+
+              const Text("Upload Certification", style: TextStyle(fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: _pickCertificate,
+                    child: const Text("Choose File"),
+                  ),
+                  const SizedBox(width: 10),
+                  _certificateFile != null
+                      ? Expanded(child: Text(_certificateFile!.path.split('/').last))
+                      : const Text("No file chosen"),
+                ],
               ),
               const SizedBox(height: 20),
 

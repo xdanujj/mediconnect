@@ -45,7 +45,6 @@ class AppointmentPage extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: 'Search For Doctors',
                   prefixIcon: Icon(Icons.search),
-                  suffixIcon: Icon(Icons.mic),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(12.0),
                 ),
@@ -88,7 +87,6 @@ class AppointmentPage extends StatelessWidget {
         showUnselectedLabels: true,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_search), label: 'Doctors'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Appointment'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
