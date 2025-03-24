@@ -80,7 +80,7 @@ class AppointmentPage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.blueGrey[900],
+        backgroundColor: Colors.white,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.black,
         showSelectedLabels: true,

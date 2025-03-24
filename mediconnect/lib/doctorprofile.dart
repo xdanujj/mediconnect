@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'doctordashboard.dart';
 
 class DoctorProfileScreen extends StatefulWidget {
   @override
@@ -15,8 +16,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   File? _profileImage;
   File? _certificateFile;
   String? _doctorName;
-
   String? _selectedSpeciality;
+  bool _profileExists = false;
+
   final List<String> _specialities = [
     'General Physician', 'Cardiologist', 'Dermatologist', 'Neurologist',
     'Pediatrician', 'Psychiatrist', 'Orthopedic', 'Gynecologist',
@@ -27,10 +29,8 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   void initState() {
     super.initState();
     _fetchDoctorName();
-    _checkIfProfileExists();
   }
 
-  // ✅ Fetch Doctor's Name from Profiles Table
   Future<void> _fetchDoctorName() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -44,26 +44,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     if (response != null) {
       setState(() {
         _doctorName = response['name'];
-      });
-    }
-  }
-
-  Future<void> _checkIfProfileExists() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-
-    final response = await Supabase.instance.client
-        .from('doctors')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    if (response != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile already exists. Redirecting to dashboard...")),
-        );
-        Navigator.pushReplacementNamed(context, '/dashboard');
       });
     }
   }
@@ -87,34 +67,44 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       setState(() {
         _certificateFile = File(result.files.single.path!);
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Certificate uploaded successfully.")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No file selected.")),
+      );
     }
   }
 
-  Future<String?> _uploadFile(File file, String folder, String extension) async {
+  Future<String?> _uploadFile(File file, String bucketName, String extension) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return null;
 
-      final filePath = '$folder/${user.id}.$extension';
+      final filePath = '$bucketName/${user.id}.${extension.toLowerCase()}';
 
-      await Supabase.instance.client.storage.from(folder).upload(
+      await Supabase.instance.client.storage.from(bucketName).upload(
         filePath,
         file,
         fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
       );
 
       final publicUrl = Supabase.instance.client.storage
-          .from(folder)
+          .from(bucketName)
           .getPublicUrl(filePath);
 
+      print("File uploaded to $publicUrl");
       return publicUrl;
     } catch (e) {
       print("File upload error: $e");
       return null;
     }
   }
+
   Future<void> _submitDoctorDetails() async {
     if (!_formKey.currentState!.validate()) return;
+
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) {
@@ -124,153 +114,149 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
         return;
       }
 
+      // ✅ Upload Profile Picture
       String? imageUrl;
       if (_profileImage != null) {
-        imageUrl = await _uploadFile(_profileImage!, 'profilepictures', 'jpg');
+        final extension = _profileImage!.path.split('.').last;
+        imageUrl = await _uploadFile(_profileImage!, 'profilepictures', extension);
       }
 
+      // ✅ Upload Certificate
       String? certificateUrl;
       if (_certificateFile != null) {
         certificateUrl = await _uploadFile(_certificateFile!, 'certifications', 'pdf');
       }
 
+      // ✅ Insert Data into 'doctors' Table with Description
       await Supabase.instance.client.from('doctors').upsert({
         'id': user.id,
         'speciality': _selectedSpeciality,
-        'description': _descriptionController.text.trim(),
+        'description': _descriptionController.text.trim(), // ✅ Storing Description
         'profile_image': imageUrl,
         'certificate_url': certificateUrl,
       });
 
-      // Show "Waiting for verification" message
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Waiting for verification...")),
+        const SnackBar(content: Text("Profile submitted! Redirecting to dashboard.")),
       );
 
-      // Wait for 2 seconds
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Navigate to the "Coming Soon" page without a new file
-      if (mounted) {
-        Navigator.push(
+      Future.delayed(const Duration(seconds: 2), () {
+        Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => Scaffold(
-              appBar: AppBar(title: const Text("Coming Soon")),
-              body: const Center(
-                child: Text(
-                  "This feature is under development. Stay tuned!",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ),
+          MaterialPageRoute(builder: (context) => DoctorDashboardScreen()),
         );
-      }
+      });
 
     } catch (error) {
+      print("Error during profile submission: $error");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error saving profile: $error")),
       );
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
+    if (_profileExists) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text("Profile already exists. Redirecting to dashboard..."),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Doctor Profile"),
-        backgroundColor: Colors.white,
-        centerTitle: true,
+        backgroundColor: const Color(0xFF1C2B4B),
+        title: const Text(
+          "Doctor Profile",
+          style: TextStyle(color: Colors.white),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundColor: Colors.blueGrey[100],
-                        backgroundImage: _profileImage != null
-                            ? FileImage(_profileImage!)
-                            : null,
-                        child: _profileImage == null
-                            ? const Icon(Icons.camera_alt, size: 40, color: Colors.white)
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text("Upload your profile photo here", style: TextStyle(color: Colors.grey)),
-                  ],
+                child: GestureDetector(
+                  onTap: _pickImage,
+                  child: CircleAvatar(
+                    radius: 60,
+                    backgroundColor: const Color(0xFF1C2B4B),
+                    backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
+                    child: _profileImage == null
+                        ? const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.camera_alt, size: 40, color: Colors.white),
+                        SizedBox(height: 8),
+                        Text("Upload Profile Pic", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12)),
+                      ],
+                    )
+                        : null,
+                  ),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 30),
 
               if (_doctorName != null)
-                Text("Name: $_doctorName", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
+                Text("Name: $_doctorName", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1C2B4B))),
 
-              const Text("Speciality", style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 30),
+
               DropdownButtonFormField<String>(
                 value: _selectedSpeciality,
-                onChanged: (value) {
-                  setState(() => _selectedSpeciality = value);
-                },
-                items: _specialities.map((speciality) {
-                  return DropdownMenuItem(
-                    value: speciality,
-                    child: Text(speciality),
-                  );
-                }).toList(),
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-                validator: (value) => value == null ? "Select a speciality" : null,
+                onChanged: (value) => setState(() => _selectedSpeciality = value),
+                items: _specialities.map((speciality) => DropdownMenuItem(value: speciality, child: Text(speciality))).toList(),
+                decoration: const InputDecoration(border: OutlineInputBorder(), labelText: "Select Speciality"),
+                validator: (value) => value == null ? "Please select a speciality" : null,
               ),
-              const SizedBox(height: 10),
 
-              const Text("Short Description", style: TextStyle(fontWeight: FontWeight.bold)),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 3,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-                validator: (value) => value!.isEmpty ? "Enter description" : null,
-              ),
-              const SizedBox(height: 10),
-
-              const Text("Upload Certification", style: TextStyle(fontWeight: FontWeight.bold)),
-              Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: _pickCertificate,
-                    child: const Text("Choose File"),
-                  ),
-                  const SizedBox(width: 10),
-                  _certificateFile != null
-                      ? Expanded(child: Text(_certificateFile!.path.split('/').last))
-                      : const Text("No file chosen"),
-                ],
-              ),
               const SizedBox(height: 20),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _submitDoctorDetails,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1C2B4B),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text("Save Profile", style: TextStyle(fontSize: 16)),
+              // ✅ Short Description Field
+              TextFormField(
+                controller: _descriptionController,
+                maxLength: 150,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: "Add Short Description",
+                  hintText: "Write a short description about yourself (max 150 characters)",
                 ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Please enter a short description";
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              ElevatedButton(
+                onPressed: _pickCertificate,
+                child: const Text("Upload Certification (PDF Only)"),
+              ),
+              if (_certificateFile != null)
+                Text("Uploaded: ${_certificateFile!.path.split('/').last}"),
+
+              const SizedBox(height: 30),
+
+              ElevatedButton(
+                onPressed: _submitDoctorDetails,
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1C2B4B)),
+                child: const Text("Save Profile", style: TextStyle(color: Colors.white)),
               ),
             ],
           ),

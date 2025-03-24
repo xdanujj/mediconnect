@@ -77,11 +77,9 @@ class _SideMenuState extends State<SideMenu> {
                 color: Color(0xFF1C2B4B),
               ),
             ),
-            buildMenuItem(Icons.calendar_today, 'Your Appointments', () {}),
             buildMenuItem(Icons.article_outlined, 'Health Articles', () {}),
             buildMenuItem(Icons.receipt_long, 'Prescriptions', () {}),
             buildMenuItem(Icons.help_outline, 'Help', () {}),
-            buildMenuItem(Icons.person_outline, 'Profile', () {}),
             buildMenuItem(Icons.info_outline, 'About Us', () {}),
             const Divider(),
             ListTile(

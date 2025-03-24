@@ -43,11 +43,11 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              flex: 3,
-              child: Container(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Container(
+                height: MediaQuery.of(context).size.height * 0.35,
                 decoration: const BoxDecoration(
                   color: Color(0xFF1C2B4B),
                   borderRadius: BorderRadius.only(bottomRight: Radius.circular(100)),
@@ -59,10 +59,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              flex: 5,
-              child: Padding(
+              Container(
+                height: MediaQuery.of(context).size.height * 0.65,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -87,8 +85,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
