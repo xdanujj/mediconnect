@@ -7,10 +7,9 @@ class AppointmentScreen extends StatefulWidget {
 }
 
 class _AppointmentScreenState extends State<AppointmentScreen> {
-  DateTime currentDate = DateTime.now();
   DateTime selectedDate = DateTime.now();
+  TimeOfDay selectedTime = TimeOfDay.now();
   String userName = 'User';
-  String? selectedSlot;
   String? selectedDoctor;
 
   @override
@@ -19,7 +18,6 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     fetchUserName();
   }
 
-  // ✅ Fetch User's Name from Supabase
   Future<void> fetchUserName() async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
@@ -39,7 +37,6 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     }
   }
 
-  // ✅ Open Calendar and Select Date
   Future<void> _selectDate() async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -51,18 +48,48 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     if (pickedDate != null) {
       setState(() {
         selectedDate = pickedDate;
-        selectedSlot = null;
-        selectedDoctor = null; // Reset selection on date change
+        selectedDoctor = null;
       });
     }
   }
 
-  // ✅ Book Now Function
+  Future<void> _selectTime() async {
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: selectedTime,
+    );
+
+    if (pickedTime != null) {
+      setState(() {
+        selectedTime = pickedTime;
+      });
+    }
+  }
+
   void _bookNow() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Appointment booked with $selectedDoctor on ${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year} at $selectedSlot!'),
+        content: Text('Appointment booked with $selectedDoctor on ${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year} at ${selectedTime.format(context)}!'),
         backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  String _getMonthName(int month) {
+    List<String> months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    return months[month - 1];
+  }
+
+  Widget buildDoctorCard(String name, String specialization, double rating, int reviews) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListTile(
+        leading: CircleAvatar(child: Icon(Icons.person)),
+        title: Text(name, style: TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text('$specialization • ⭐ $rating ($reviews Reviews)'),
       ),
     );
   }
@@ -74,13 +101,20 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       appBar: AppBar(
         title: GestureDetector(
           onTap: _selectDate,
-          child: Text(
-            '${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year}',
-            style: const TextStyle(
-              fontSize: 18,
-              decoration: TextDecoration.underline,
-              color: Colors.white,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  decoration: TextDecoration.underline,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 5),
+              const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 22),
+            ],
           ),
         ),
         centerTitle: true,
@@ -113,100 +147,32 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
               ],
             ),
           ),
-          if (selectedSlot != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-              child: ElevatedButton(
-                onPressed: _bookNow,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1C2B4B),
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: const Text('Book Now', style: TextStyle(fontSize: 18)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+            child: ElevatedButton(
+              onPressed: _selectTime,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1C2B4B),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
               ),
+              child: const Text('Select Time', style: TextStyle(fontSize: 18)),
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+            child: ElevatedButton(
+              onPressed: _bookNow,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1C2B4B),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: const Text('Book Now', style: TextStyle(fontSize: 18)),
+            ),
+          ),
         ],
       ),
     );
-  }
-
-  // ✅ Build Doctor Card
-  Widget buildDoctorCard(String name, String title, double rating, int reviews) {
-    return Card(
-      elevation: 6,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const CircleAvatar(
-                  backgroundColor: Color(0xFF1C2B4B),
-                  radius: 30,
-                  child: Icon(Icons.person, color: Colors.white, size: 30),
-                ),
-                const SizedBox(width: 15),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: const TextStyle(color: Color(0xFF1C2B4B), fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(title, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.star, color: Colors.yellow, size: 16),
-                        Text(' $rating ($reviews Reviews)', style: const TextStyle(color: Colors.black54)),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: List.generate(
-                10,
-                    (index) {
-                  final time = '${9 + (index ~/ 2)}:${index % 2 == 0 ? '00' : '30'}';
-                  return ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        selectedSlot = time;
-                        selectedDoctor = name; // Track the selected doctor
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: (selectedSlot == time && selectedDoctor == name)
-                          ? Colors.green
-                          : const Color(0xFF1C2B4B),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text(time),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ✅ Helper to Get Month Name
-  String _getMonthName(int month) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[month - 1];
   }
 }

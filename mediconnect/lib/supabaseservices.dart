@@ -55,6 +55,7 @@ class SupabaseService {
       );
 
       if (response.user != null) {
+        // Session is automatically persisted by Supabase
         return "Login successful";
       }
       return "Invalid email or password. Please try again.";
@@ -86,5 +87,10 @@ class SupabaseService {
   // ✅ Check if User is Logged In
   bool isUserLoggedIn() {
     return getCurrentUser() != null;
+  }
+
+  // ✅ Get Current Session
+  Session? getCurrentSession() {
+    return client.auth.currentSession;
   }
 }

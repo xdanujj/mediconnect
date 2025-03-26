@@ -23,17 +23,23 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Perform Sign In using Supabase
-    final result = await supabaseService.signIn(email, password);
+    try {
+      // Perform Sign In using Supabase
+      final result = await supabaseService.signIn(email, password);
 
-    if (result != null && result == "Login successful") {
+      if (result != null && result == "Login successful") {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Login Successful!")),
+        );
+        // No need to navigate, AuthWrapper will handle it
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result ?? "Login failed. Please try again.")),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login Successful!")),
-      );
-      Navigator.pushReplacementNamed(context, '/userchoice');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result ?? "Login failed. Please try again.")),
+        SnackBar(content: Text("An error occurred: $e")),
       );
     }
   }
