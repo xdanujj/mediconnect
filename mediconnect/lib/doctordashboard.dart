@@ -9,42 +9,21 @@ class DoctorDashboardScreen extends StatefulWidget {
 class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
   String doctorName = "Doctor's Name";
   String doctorProfilePicUrl = '';
-  double lowerLimit = 0; // Starting from 12:00 AM
-  double upperLimit = 24; // Ending at 11:59 PM
-
-  // Example appointments data
-  List<Map<String, dynamic>> appointments = [
-    {
-      'id': 1,
-      'name': 'Akshat Shah',
-      'date': '21/02/2025',
-      'timeSlot': '9:00am to 9:15am',
-    },
-    {
-      'id': 2,
-      'name': 'Anuj Lolam',
-      'date': '22/02/2025',
-      'timeSlot': '10:00am to 10:15am',
-    }
-  ];
+  TimeOfDay lowerLimit = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay upperLimit = const TimeOfDay(hour: 17, minute: 0);
 
   @override
   void initState() {
     super.initState();
     _fetchDoctorData();
+    _fetchAvailability();
   }
 
-  // Fetch Doctor Data using auth.users.id
   Future<void> _fetchDoctorData() async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
 
-      if (user == null) {
-        print('User not logged in');
-        return;
-      }
-
-      // Fetch profile_image from doctors table
       final doctorResponse = await Supabase.instance.client
           .from('doctors')
           .select('profile_image')
@@ -57,7 +36,6 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         });
       }
 
-      // Fetch name from profiles table
       final nameResponse = await Supabase.instance.client
           .from('profiles')
           .select('name')
@@ -74,95 +52,82 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     }
   }
 
-  void _handleAppointmentAction(int id, String action) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Appointment $action for ID: $id')),
-    );
+  Future<void> _fetchAvailability() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      final response = await Supabase.instance.client
+          .from('doctor_availability')
+          .select('start_time, end_time')
+          .eq('doctor_id', user.id)
+          .single();
+
+      if (response != null) {
+        setState(() {
+          lowerLimit = _parseTime(response['start_time']);
+          upperLimit = _parseTime(response['end_time']);
+        });
+      }
+    } catch (error) {
+      print('Error fetching availability: $error');
+    }
   }
 
-  String _formatTime(double time) {
-    int hours = time.floor();
-    int minutes = ((time - hours) * 60).round();
-    String period = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 == 0 ? 12 : hours % 12;
-    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')} $period';
+  Future<void> _saveAvailability() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      await Supabase.instance.client.from('doctor_availability').upsert({
+        'doctor_id': user.id,
+        'start_time': _formatTimeForDB(lowerLimit),
+        'end_time': _formatTimeForDB(upperLimit),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Availability set: ${_formatTime(lowerLimit)} - ${_formatTime(upperLimit)}')),
+      );
+    } catch (error) {
+      print('Error saving availability: $error');
+    }
   }
 
-  void _showTimeSlotSelector() {
-    showModalBottomSheet(
+  TimeOfDay _parseTime(String timeString) {
+    final parts = timeString.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hours = time.hourOfPeriod;
+    final minutes = time.minute;
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '${hours == 0 ? 12 : hours}:${minutes.toString().padLeft(2, '0')} $period';
+  }
+
+  String _formatTimeForDB(TimeOfDay time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:00';
+  }
+
+  Future<void> _pickTime(BuildContext context, bool isStart) async {
+    final initialTime = isStart ? lowerLimit : upperLimit;
+    final pickedTime = await showTimePicker(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              height: 400,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const Text(
-                    'Select Your Availability',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Lower Limit Slider
-                  const Text('Start Time:'),
-                  Slider(
-                    value: lowerLimit,
-                    min: 0,
-                    max: 24,
-                    divisions: 24, // 1-hour interval
-                    label: _formatTime(lowerLimit),
-                    onChanged: (value) {
-                      setModalState(() {
-                        if (value < upperLimit) {
-                          lowerLimit = value;
-                        }
-                      });
-                    },
-                  ),
-                  Text('Start Time: ${_formatTime(lowerLimit)}'),
-
-                  const SizedBox(height: 20),
-
-                  // Upper Limit Slider
-                  const Text('End Time:'),
-                  Slider(
-                    value: upperLimit,
-                    min: 0,
-                    max: 24,
-                    divisions: 24,
-                    label: _formatTime(upperLimit),
-                    onChanged: (value) {
-                      setModalState(() {
-                        if (value > lowerLimit) {
-                          upperLimit = value;
-                        }
-                      });
-                    },
-                  ),
-                  Text('End Time: ${_formatTime(upperLimit)}'),
-
-                  const SizedBox(height: 20),
-
-                  // Confirm Button
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Availability Set: ${_formatTime(lowerLimit)} to ${_formatTime(upperLimit)}')),
-                      );
-                    },
-                    child: const Text('Confirm Availability'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      initialTime: initialTime,
+      helpText: isStart ? 'Select Start Time' : 'Select End Time', // Custom help text
     );
+
+    if (pickedTime != null) {
+      setState(() {
+        if (isStart) {
+          lowerLimit = pickedTime;
+        } else {
+          upperLimit = pickedTime;
+        }
+      });
+    }
   }
+
 
 
   @override
@@ -172,9 +137,8 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Header Section
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
               width: double.infinity,
               decoration: const BoxDecoration(
                 color: Color(0xFF1C2B4B),
@@ -185,27 +149,17 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               ),
               child: Column(
                 children: [
-                  const SizedBox(height: 40),
-
                   // Profile Picture
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
-                      image: DecorationImage(
-                        image: doctorProfilePicUrl.isNotEmpty
-                            ? NetworkImage(doctorProfilePicUrl)
-                            : const AssetImage('assets/images/profile_placeholder.png')
-                        as ImageProvider,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundImage: doctorProfilePicUrl.isNotEmpty
+                        ? NetworkImage(doctorProfilePicUrl)
+                        : const AssetImage('assets/images/profile_placeholder.png') as ImageProvider,
+                    backgroundColor: Colors.white,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
 
-                  // Welcome Text
+                  // Doctor Name
                   const Text(
                     'Welcome Dr.',
                     style: TextStyle(color: Colors.white, fontSize: 18),
@@ -214,93 +168,30 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                     doctorName,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
 
+                  // Select Time Slot Button
                   ElevatedButton(
-                    onPressed: _showTimeSlotSelector,
+                    onPressed: () async {
+                      await _pickTime(context, true);
+                      await _pickTime(context, false);
+                      _saveAvailability();
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF1C2B4B),
+                      elevation: 5,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                     child: const Text('Select Your TimeSlot'),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-
-            // Appointments Section
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Your Appointments:',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Appointment Cards
-            for (var appointment in appointments)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${appointment['id']}. ${appointment['name']}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Date: ${appointment['date']}'),
-                    Text('Time-Slot: ${appointment['timeSlot']}'),
-                    const SizedBox(height: 10),
-
-                    // Accept & Reject Buttons
-                    Row(
-                      children: [
-                        ElevatedButton(
-                          onPressed: () =>
-                              _handleAppointmentAction(appointment['id'], 'Accepted'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Accept'),
-                        ),
-                        const SizedBox(width: 10),
-                        ElevatedButton(
-                          onPressed: () =>
-                              _handleAppointmentAction(appointment['id'], 'Rejected'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Reject'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
           ],
         ),
       ),

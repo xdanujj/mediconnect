@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -7,19 +8,22 @@ class AppointmentScreen extends StatefulWidget {
 }
 
 class _AppointmentScreenState extends State<AppointmentScreen> {
-  DateTime currentDate = DateTime.now();
   DateTime selectedDate = DateTime.now();
   String userName = 'User';
-  String? selectedSlot;
+  TimeOfDay? selectedSlot;
   String? selectedDoctor;
+  List<Map<String, dynamic>> doctors = [];
+  String? confirmationMessage;
+  TimeOfDay? doctorStartTime;
+  TimeOfDay? doctorEndTime;
 
   @override
   void initState() {
     super.initState();
     fetchUserName();
+    fetchDoctors();
   }
 
-  // ✅ Fetch User's Name from Supabase
   Future<void> fetchUserName() async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
@@ -29,7 +33,6 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
             .select('name')
             .eq('id', user.id)
             .single();
-
         setState(() {
           userName = response['name'] ?? 'User';
         });
@@ -39,30 +42,159 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     }
   }
 
-  // ✅ Open Calendar and Select Date
-  Future<void> _selectDate() async {
+  Future<void> fetchDoctors() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('doctors')
+          .select('id, speciality, profile_image, profiles(name)');
+      setState(() {
+        doctors = List<Map<String, dynamic>>.from(response);
+      });
+    } catch (error) {
+      print('Error fetching doctors: $error');
+    }
+  }
+
+  Future<void> fetchDoctorAvailability(String doctorId) async {
+    try {
+      final response = await Supabase.instance.client
+          .from('doctor_availability')
+          .select('start_time, end_time')
+          .eq('doctor_id', doctorId)
+          .single();
+      setState(() {
+        doctorStartTime = _convertToTimeOfDay(response['start_time']);
+        doctorEndTime = _convertToTimeOfDay(response['end_time']);
+      });
+    } catch (error) {
+      print('Error fetching doctor availability: $error');
+    }
+  }
+
+  TimeOfDay _convertToTimeOfDay(String time) {
+    return TimeOfDay(
+      hour: int.parse(time.split(":")[0]),
+      minute: int.parse(time.split(":")[1]),
+    );
+  }
+
+  void selectDoctor(String doctorId, String doctorName) {
+    setState(() {
+      selectedDoctor = doctorName;
+      selectedSlot = null;
+      confirmationMessage = null;
+    });
+    fetchDoctorAvailability(doctorId);
+  }
+
+  void _selectTime() async {
+    if (doctorStartTime == null || doctorEndTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a doctor to view availability.")),
+      );
+      return;
+    }
+
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: selectedSlot ?? TimeOfDay.now(),
+    );
+
+    if (pickedTime != null) {
+      if (_isTimeWithinRange(pickedTime)) {
+        setState(() {
+          selectedSlot = pickedTime;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Selected time is outside the doctor's available hours."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  bool _isTimeWithinRange(TimeOfDay time) {
+    return (time.hour > doctorStartTime!.hour ||
+        (time.hour == doctorStartTime!.hour && time.minute >= doctorStartTime!.minute)) &&
+        (time.hour < doctorEndTime!.hour ||
+            (time.hour == doctorEndTime!.hour && time.minute <= doctorEndTime!.minute));
+  }
+
+  void _confirmBooking() {
+    if (selectedDoctor != null && selectedSlot != null) {
+      setState(() {
+        confirmationMessage =
+        '✅ Your slot with Dr. $selectedDoctor has been booked for ${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year} at ${selectedSlot!.format(context)}!';
+      });
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
 
     if (pickedDate != null) {
       setState(() {
         selectedDate = pickedDate;
-        selectedSlot = null;
-        selectedDoctor = null; // Reset selection on date change
       });
     }
   }
 
-  // ✅ Book Now Function
-  void _bookNow() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Appointment booked with $selectedDoctor on ${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year} at $selectedSlot!'),
-        backgroundColor: Colors.green,
+  Widget buildDoctorCard(String doctorId, String name, String title, String? profileImageUrl, bool isSelected) {
+    return GestureDetector(
+      onTap: () => selectDoctor(doctorId, name),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1C2B4B) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundImage: profileImageUrl != null ? NetworkImage(profileImageUrl) : null,
+                backgroundColor: const Color(0xFF1C2B4B),
+                child: profileImageUrl == null ? const Icon(Icons.person, color: Colors.white) : null,
+                radius: 40,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.black)),
+                    Text(title, style: TextStyle(color: isSelected ? Colors.white70 : Colors.grey[600])),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -70,143 +202,69 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        title: GestureDetector(
-          onTap: _selectDate,
-          child: Text(
-            '${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year}',
-            style: const TextStyle(
-              fontSize: 18,
-              decoration: TextDecoration.underline,
-              color: Colors.white,
-            ),
-          ),
-        ),
+        title: const Text('Book an Appointment'),
         centerTitle: true,
         backgroundColor: const Color(0xFF1C2B4B),
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
           const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              'Hello, $userName 👋',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1C2B4B)),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              'Available Doctors',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1C2B4B)),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: ListView(
-              children: [
-                buildDoctorCard('Olivia Wilson', 'Consultant - Physiotherapy', 4.9, 37),
-                buildDoctorCard('Jonathan Patterson', 'Consultant - Physiotherapy', 4.8, 42),
-              ],
-            ),
-          ),
-          if (selectedSlot != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-              child: ElevatedButton(
-                onPressed: _bookNow,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1C2B4B),
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: const Text('Book Now', style: TextStyle(fontSize: 18)),
+          Text('Hello, $userName 👋', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.calendar_today),
+                onPressed: () => _selectDate(context),
               ),
+              Text(
+                "Selected Date: ${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year}",
+                style: const TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+          const Text('Available Doctors', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+
+          Expanded(
+            child: doctors.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+              itemCount: doctors.length,
+              itemBuilder: (context, index) {
+                final doctor = doctors[index];
+                final isSelected = selectedDoctor == doctor['profiles']['name'];
+                return buildDoctorCard(
+                  doctor['id'],
+                  doctor['profiles']['name'],
+                  doctor['speciality'],
+                  doctor['profile_image'],
+                  isSelected,
+                );
+              },
+            ),
+          ),
+
+          ElevatedButton(
+            onPressed: _selectTime,
+            child: const Text('Select Time Slot'),
+          ),
+          ElevatedButton(
+            onPressed: _confirmBooking,
+            child: const Text('Confirm Your Slot'),
+          ),
+          if (confirmationMessage != null)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(confirmationMessage!, style: const TextStyle(color: Colors.green)),
             ),
         ],
       ),
     );
-  }
-
-  // ✅ Build Doctor Card
-  Widget buildDoctorCard(String name, String title, double rating, int reviews) {
-    return Card(
-      elevation: 6,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const CircleAvatar(
-                  backgroundColor: Color(0xFF1C2B4B),
-                  radius: 30,
-                  child: Icon(Icons.person, color: Colors.white, size: 30),
-                ),
-                const SizedBox(width: 15),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: const TextStyle(color: Color(0xFF1C2B4B), fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(title, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.star, color: Colors.yellow, size: 16),
-                        Text(' $rating ($reviews Reviews)', style: const TextStyle(color: Colors.black54)),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: List.generate(
-                10,
-                    (index) {
-                  final time = '${9 + (index ~/ 2)}:${index % 2 == 0 ? '00' : '30'}';
-                  return ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        selectedSlot = time;
-                        selectedDoctor = name; // Track the selected doctor
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: (selectedSlot == time && selectedDoctor == name)
-                          ? Colors.green
-                          : const Color(0xFF1C2B4B),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text(time),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ✅ Helper to Get Month Name
-  String _getMonthName(int month) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[month - 1];
   }
 }
