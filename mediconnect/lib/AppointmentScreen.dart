@@ -90,7 +90,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
   void _selectTime() async {
     if (doctorStartTime == null || doctorEndTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a doctor to view availability.")),
+        const SnackBar(
+            content: Text("Please select a doctor to view availability.")),
       );
       return;
     }
@@ -98,6 +99,12 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     TimeOfDay? pickedTime = await showTimePicker(
       context: context,
       initialTime: selectedSlot ?? TimeOfDay.now(),
+      builder: (BuildContext context, Widget? child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
+        );
+      },
     );
 
     if (pickedTime != null) {
@@ -108,7 +115,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Selected time is outside the doctor's available hours."),
+            content: Text(
+                "Selected time is outside the doctor's available hours."),
             backgroundColor: Colors.red,
           ),
         );
@@ -118,16 +126,20 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
 
   bool _isTimeWithinRange(TimeOfDay time) {
     return (time.hour > doctorStartTime!.hour ||
-        (time.hour == doctorStartTime!.hour && time.minute >= doctorStartTime!.minute)) &&
+        (time.hour == doctorStartTime!.hour &&
+            time.minute >= doctorStartTime!.minute)) &&
         (time.hour < doctorEndTime!.hour ||
-            (time.hour == doctorEndTime!.hour && time.minute <= doctorEndTime!.minute));
+            (time.hour == doctorEndTime!.hour &&
+                time.minute <= doctorEndTime!.minute));
   }
 
   void _confirmBooking() {
     if (selectedDoctor != null && selectedSlot != null) {
       setState(() {
         confirmationMessage =
-        '✅ Your slot with Dr. $selectedDoctor has been booked for ${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year} at ${selectedSlot!.format(context)}!';
+        '✅ Your slot with Dr. $selectedDoctor has been booked for ${_getMonthName(
+            selectedDate.month)} ${selectedDate.day}, ${selectedDate
+            .year} at ${selectedSlot!.format(context)}!';
       });
     }
   }
@@ -155,7 +167,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     }
   }
 
-  Widget buildDoctorCard(String doctorId, String name, String title, String? profileImageUrl, bool isSelected) {
+  Widget buildDoctorCard(String doctorId, String name, String title,
+      String? profileImageUrl, bool isSelected) {
     return GestureDetector(
       onTap: () => selectDoctor(doctorId, name),
       child: AnimatedContainer(
@@ -177,9 +190,11 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundImage: profileImageUrl != null ? NetworkImage(profileImageUrl) : null,
+                backgroundImage: profileImageUrl != null ? NetworkImage(
+                    profileImageUrl) : null,
                 backgroundColor: const Color(0xFF1C2B4B),
-                child: profileImageUrl == null ? const Icon(Icons.person, color: Colors.white) : null,
+                child: profileImageUrl == null ? const Icon(
+                    Icons.person, color: Colors.white) : null,
                 radius: 40,
               ),
               const SizedBox(width: 16),
@@ -187,8 +202,11 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.black)),
-                    Text(title, style: TextStyle(color: isSelected ? Colors.white70 : Colors.grey[600])),
+                    Text(name, style: TextStyle(fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : Colors.black)),
+                    Text(title, style: TextStyle(
+                        color: isSelected ? Colors.white70 : Colors.grey[600])),
                   ],
                 ),
               ),
@@ -212,8 +230,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       body: Column(
         children: [
           const SizedBox(height: 20),
-          Text('Hello, $userName 👋', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-
+          Text('Hello, $userName 👋', style: const TextStyle(
+              fontSize: 24, fontWeight: FontWeight.bold)),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -222,15 +240,16 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                 onPressed: () => _selectDate(context),
               ),
               Text(
-                "Selected Date: ${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year}",
+                "Selected Date: ${_getMonthName(
+                    selectedDate.month)} ${selectedDate.day}, ${selectedDate
+                    .year}",
                 style: const TextStyle(fontSize: 16),
               ),
             ],
           ),
-
           const SizedBox(height: 20),
-          const Text('Available Doctors', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-
+          const Text('Available Doctors',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           Expanded(
             child: doctors.isEmpty
                 ? const Center(child: CircularProgressIndicator())
@@ -249,7 +268,14 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
               },
             ),
           ),
-
+          if (selectedSlot != null)
+            Text(
+              "Selected Time: ${selectedSlot!.format(
+                  context)} on ${_getMonthName(
+                  selectedDate.month)} ${selectedDate.day}, ${selectedDate
+                  .year}",
+              style: const TextStyle(color: Colors.blue),
+            ),
           ElevatedButton(
             onPressed: _selectTime,
             child: const Text('Select Time Slot'),
@@ -261,7 +287,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           if (confirmationMessage != null)
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text(confirmationMessage!, style: const TextStyle(color: Colors.green)),
+              child: Text(confirmationMessage!,
+                  style: const TextStyle(color: Colors.green)),
             ),
         ],
       ),

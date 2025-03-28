@@ -114,9 +114,15 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: initialTime,
-      helpText: isStart ? 'Select Start Time' : 'Select End Time', // Custom help text
+      helpText: isStart ? 'Select Start Time' : 'Select End Time',
+      builder: (BuildContext context, Widget? child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
+        );
+      },
     );
-
+aa
     if (pickedTime != null) {
       setState(() {
         if (isStart) {
