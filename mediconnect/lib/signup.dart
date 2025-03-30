@@ -102,6 +102,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
     );
+
   }
 
   Widget buildTextField(String label, String hint,
