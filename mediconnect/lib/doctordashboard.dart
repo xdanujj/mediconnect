@@ -11,12 +11,14 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
   String doctorProfilePicUrl = '';
   TimeOfDay lowerLimit = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay upperLimit = const TimeOfDay(hour: 17, minute: 0);
+  List<Map<String, dynamic>> appointments = []; // Store fetched appointments
 
   @override
   void initState() {
     super.initState();
     _fetchDoctorData();
     _fetchAvailability();
+    _fetchAppointments();
   }
 
   Future<void> _fetchDoctorData() async {
@@ -135,6 +137,24 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     }
   }
 
+  Future<void> _fetchAppointments() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      final response = await Supabase.instance.client
+          .from('appointments')
+          .select('patient_id, profiles(name)')
+          .eq('doctor_id', user.id);
+
+      setState(() {
+        appointments = List<Map<String, dynamic>>.from(response);
+      });
+    } catch (error) {
+      print('Error fetching appointments: $error');
+    }
+  }
+
 
 
   @override
@@ -195,6 +215,64 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                     child: const Text('Select Your TimeSlot'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Refresh Button
+            ElevatedButton(
+              onPressed: _fetchAppointments,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1C2B4B),
+                foregroundColor: Colors.white,
+                elevation: 5,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Refresh Patients'),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Patient List
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  const Text(
+                    'Patients List',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  appointments.isEmpty
+                      ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text(
+                        'No patients yet.',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ),
+                  )
+                      : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: appointments.length,
+                    itemBuilder: (context, index) {
+                      final patient = appointments[index];
+                      return Card(
+                        elevation: 3,
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        child: ListTile(
+                          leading: const Icon(Icons.person, color: Color(0xFF1C2B4B)),
+                          title: Text(
+                            patient['profiles']['name'] ?? 'Unknown',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
