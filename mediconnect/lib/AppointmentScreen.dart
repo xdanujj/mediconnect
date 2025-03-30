@@ -80,7 +80,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           .from('appointments')
           .select('appointment_time')
           .eq('doctor_id', doctorId)
-          .eq('appointment_date', selectedDate.toIso8601String().split('T')[0]); // Only for selected date
+          .eq('appointment_date', selectedDate.toIso8601String().split(
+          'T')[0]); // Only for selected date
 
       setState(() {
         doctorStartTime = _convertToTimeOfDay(response['start_time']);
@@ -115,7 +116,6 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
   }
 
 
-
   TimeOfDay _addMinutes(TimeOfDay time, int minutes) {
     int newMinutes = time.minute + minutes;
     int newHour = time.hour + (newMinutes ~/ 60);
@@ -135,7 +135,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     });
 
     if (selectedDoctorId != null) {
-      fetchDoctorAvailability(selectedDoctorId!); // ✅ Use '!' to assert non-null value
+      fetchDoctorAvailability(
+          selectedDoctorId!); // ✅ Use '!' to assert non-null value
     }
   }
 
@@ -201,7 +202,9 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
 
         // Insert into appointments table
         await Supabase.instance.client.from('appointments').insert({
-          'doctor_id': doctors.firstWhere((doctor) => doctor['profiles']['name'] == selectedDoctor)['id'], // Add a variable to store selected doctor ID
+          'doctor_id': doctors.firstWhere((
+              doctor) => doctor['profiles']['name'] == selectedDoctor)['id'],
+          // Add a variable to store selected doctor ID
           'patient_id': user.id,
           'appointment_date': selectedDate.toIso8601String().split('T')[0],
           'appointment_time': '${selectedSlot!.hour}:${selectedSlot!.minute}',
@@ -209,11 +212,14 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
 
         setState(() {
           confirmationMessage =
-          '✅ Your slot with Dr. $selectedDoctor has been booked for ${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year} at ${selectedSlot!.format(context)}!';
+          '✅ Your slot with Dr. $selectedDoctor has been booked for ${_getMonthName(
+              selectedDate.month)} ${selectedDate.day}, ${selectedDate
+              .year} at ${selectedSlot!.format(context)}!';
         });
 
         if (selectedDoctorId != null) {
-          fetchDoctorAvailability(selectedDoctorId!); // ✅ Use '!' to assert non-null value
+          fetchDoctorAvailability(
+              selectedDoctorId!); // ✅ Use '!' to assert non-null value
         } else {
           print("Error: selectedDoctorId is null.");
         }
@@ -356,71 +362,78 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
             ),
           ),
 
-          // Time Slots Section
-          if (doctorStartTime != null && doctorEndTime != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: Column(
-                children: [
-                  const Text(
-                    "Available Time Slots",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 10,
-                    children: availableSlots.map((slot) {
-                      bool isBooked = bookedSlots.contains(slot); // Check if already booked
-                      return ChoiceChip(
-                        label: Text(slot.format(context)),
-                        selected: selectedSlot == slot,
-                        onSelected: (bool selected) {
-                          if (isBooked) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Slot already booked")),
+          // Show time slots & confirmation only if a doctor is selected
+          if (selectedDoctor != null) ...[
+            // Time Slots Section
+            if (doctorStartTime != null && doctorEndTime != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Column(
+                  children: [
+                    const Text(
+                      "Available Time Slots",
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 100, // Adjust height as needed
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        child: Wrap(
+                          spacing: 10,
+                          children: availableSlots.map((slot) {
+                            bool isBooked = bookedSlots.contains(slot);
+                            return ChoiceChip(
+                              label: Text(slot.format(context)),
+                              selected: selectedSlot == slot,
+                              onSelected: (bool selected) {
+                                if (isBooked) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Slot already booked")),
+                                  );
+                                } else {
+                                  setState(() {
+                                    selectedSlot = selected ? slot : null;
+                                  });
+                                }
+                              },
+                              backgroundColor: isBooked ? Colors.grey : Colors.blue,
+                              disabledColor: Colors.grey,
                             );
-                          } else {
-                            setState(() {
-                              selectedSlot = selected ? slot : null;
-                            });
-                          }
-                        },
-                        backgroundColor: isBooked ? Colors.grey : Colors.blue, // ✅ Grey for booked
-                        disabledColor: Colors.grey,
-                      );
-                    }).toList(),
-                  )
-                ],
+                          }).toList(),
+                        ),
+                      ),
+                    )
+
+                  ],
+                ),
               ),
+
+            // Selected Time Display
+            if (selectedSlot != null)
+              Text(
+                "Selected Time: ${selectedSlot?.format(
+                    context)} on ${_getMonthName(
+                    selectedDate.month)} ${selectedDate.day}, ${selectedDate
+                    .year}",
+                style: const TextStyle(color: Colors.blue),
+              ),
+
+            // Action Button
+            ElevatedButton(
+              onPressed: selectedDoctor != null ? _confirmBooking : null,
+              child: const Text('Confirm Your Slot'),
             ),
 
-          // Selected Time Display
-          Visibility(
-            visible: selectedSlot != null,
-            child: Text(
-              "Selected Time: ${selectedSlot?.format(
-                  context)} on ${_getMonthName(
-                  selectedDate.month)} ${selectedDate.day}, ${selectedDate
-                  .year}",
-              style: const TextStyle(color: Colors.blue),
-            ),
-          ),
-
-          // Action Buttons
-          ElevatedButton(
-            onPressed: selectedDoctor != null ? _confirmBooking : null,
-            child: const Text('Confirm Your Slot'),
-          ),
-
-          // Confirmation Message
-          Visibility(
-            visible: confirmationMessage != null,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(confirmationMessage ?? "",
-                  style: const TextStyle(color: Colors.green)),
-            ),
-          ),
+            // Confirmation Message
+            if (confirmationMessage != null)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(confirmationMessage ?? "",
+                    style: const TextStyle(color: Colors.green)),
+              ),
+          ],
         ],
       ),
     );

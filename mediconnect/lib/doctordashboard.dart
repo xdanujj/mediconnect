@@ -221,17 +221,19 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Refresh Button
-            ElevatedButton(
-              onPressed: _fetchAppointments,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1C2B4B),
-                foregroundColor: Colors.white,
-                elevation: 5,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 20), // Adjust right padding as needed
+                child: IconButton(
+                  onPressed: _fetchAppointments,
+                  icon: const Icon(Icons.refresh, size: 28, color: Color(0xFF1C2B4B)),
+                  tooltip: 'Refresh Patients',
+                ),
               ),
-              child: const Text('Refresh Patients'),
             ),
+
+
 
             const SizedBox(height: 10),
 
