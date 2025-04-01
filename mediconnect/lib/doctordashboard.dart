@@ -11,7 +11,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
   String doctorProfilePicUrl = '';
   TimeOfDay lowerLimit = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay upperLimit = const TimeOfDay(hour: 17, minute: 0);
-  List<Map<String, dynamic>> appointments = []; // Store fetched appointments
+  List<Map<String, dynamic>> appointments = [];
 
   @override
   void initState() {
@@ -32,7 +32,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           .eq('id', user.id)
           .single();
 
-      if (doctorResponse != null && doctorResponse['profile_image'] != null) {
+      if (doctorResponse?['profile_image'] != null) {
         setState(() {
           doctorProfilePicUrl = doctorResponse['profile_image'];
         });
@@ -44,7 +44,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           .eq('id', user.id)
           .single();
 
-      if (nameResponse != null && nameResponse['name'] != null) {
+      if (nameResponse?['name'] != null) {
         setState(() {
           doctorName = nameResponse['name'];
         });
@@ -117,22 +117,11 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       context: context,
       initialTime: initialTime,
       helpText: isStart ? 'Select Start Time' : 'Select End Time',
-      builder: (BuildContext context, Widget? child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-          child: child!,
-        );
-      },
     );
-
 
     if (pickedTime != null) {
       setState(() {
-        if (isStart) {
-          lowerLimit = pickedTime;
-        } else {
-          upperLimit = pickedTime;
-        }
+        isStart ? lowerLimit = pickedTime : upperLimit = pickedTime;
       });
     }
   }
@@ -144,8 +133,9 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
 
       final response = await Supabase.instance.client
           .from('appointments')
-          .select('patient_id, profiles(name)')
-          .eq('doctor_id', user.id);
+          .select('patient_id, appointment_date, appointment_time, profiles(name)')
+          .eq('doctor_id', user.id)
+          .order('appointment_date', ascending: true);
 
       setState(() {
         appointments = List<Map<String, dynamic>>.from(response);
@@ -155,7 +145,16 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     }
   }
 
+  String _formatTimeForDisplay(String timeString) {
+    final parts = timeString.split(':');
+    int hour = int.parse(parts[0]);
+    int minute = int.parse(parts[1]);
 
+    String period = hour >= 12 ? 'PM' : 'AM';
+    hour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+
+    return '${hour}:${minute.toString().padLeft(2, '0')} $period';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,8 +164,8 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         child: Column(
           children: [
             Container(
+              width: double.infinity, // Ensure full width
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-              width: double.infinity,
               decoration: const BoxDecoration(
                 color: Color(0xFF1C2B4B),
                 borderRadius: BorderRadius.only(
@@ -176,17 +175,13 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               ),
               child: Column(
                 children: [
-                  // Profile Picture
                   CircleAvatar(
                     radius: 50,
                     backgroundImage: doctorProfilePicUrl.isNotEmpty
                         ? NetworkImage(doctorProfilePicUrl)
                         : const AssetImage('assets/images/profile_placeholder.png') as ImageProvider,
-                    backgroundColor: Colors.white,
                   ),
                   const SizedBox(height: 20),
-
-                  // Doctor Name
                   const Text(
                     'Welcome Dr.',
                     style: TextStyle(color: Colors.white, fontSize: 18),
@@ -200,8 +195,6 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // Select Time Slot Button
                   ElevatedButton(
                     onPressed: () async {
                       await _pickTime(context, true);
@@ -211,8 +204,6 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF1C2B4B),
-                      elevation: 5,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                     child: const Text('Select Your TimeSlot'),
                   ),
@@ -220,64 +211,36 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 20), // Adjust right padding as needed
-                child: IconButton(
-                  onPressed: _fetchAppointments,
-                  icon: const Icon(Icons.refresh, size: 28, color: Color(0xFF1C2B4B)),
-                  tooltip: 'Refresh Patients',
-                ),
-              ),
+            const Text(
+              'Patients List',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-
-
-
             const SizedBox(height: 10),
-
-            // Patient List
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  const Text(
-                    'Patients List',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  appointments.isEmpty
-                      ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text(
-                        'No patients yet.',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
+            appointments.isEmpty
+                ? const Text('No patients yet.', style: TextStyle(color: Colors.grey))
+                : ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: appointments.length,
+              itemBuilder: (context, index) {
+                final patient = appointments[index];
+                return Card(
+                  elevation: 3,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      child: Text('${index + 1}'),
+                      backgroundColor: const Color(0xFF1C2B4B),
+                      foregroundColor: Colors.white,
                     ),
-                  )
-                      : ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: appointments.length,
-                    itemBuilder: (context, index) {
-                      final patient = appointments[index];
-                      return Card(
-                        elevation: 3,
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: ListTile(
-                          leading: const Icon(Icons.person, color: Color(0xFF1C2B4B)),
-                          title: Text(
-                            patient['profiles']['name'] ?? 'Unknown',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      );
-                    },
+                    title: Text(patient['profiles']['name'] ?? 'Unknown'),
+                    subtitle: Text(
+                      'Date: ${patient['appointment_date']} | '
+                          'Time: ${_formatTimeForDisplay(patient['appointment_time'])}',
+                    ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ],
         ),
