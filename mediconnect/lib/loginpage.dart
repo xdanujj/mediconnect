@@ -31,7 +31,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Login Successful!")),
         );
-        // No need to navigate, AuthWrapper will handle it
+        // ✅ Navigate to home screen after successful login
+        Navigator.pushReplacementNamed(context, '/userchoice');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result ?? "Login failed. Please try again.")),

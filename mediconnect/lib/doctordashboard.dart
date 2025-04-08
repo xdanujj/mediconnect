@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mediconnect/ProfilepageDoc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DoctorDashboardScreen extends StatefulWidget {
@@ -7,6 +8,47 @@ class DoctorDashboardScreen extends StatefulWidget {
 }
 
 class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    HomeScreen(),
+    ProfileScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        selectedItemColor: Color(0xFF1C2B4B),
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+      ),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   String doctorName = "Doctor's Name";
   String doctorProfilePicUrl = '';
   TimeOfDay lowerLimit = const TimeOfDay(hour: 9, minute: 0);
@@ -158,93 +200,91 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity, // Ensure full width
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1C2B4B),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1C2B4B),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 50,
+                  backgroundImage: doctorProfilePicUrl.isNotEmpty
+                      ? NetworkImage(doctorProfilePicUrl)
+                      : const AssetImage('assets/images/profile_placeholder.png') as ImageProvider,
                 ),
-              ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage: doctorProfilePicUrl.isNotEmpty
-                        ? NetworkImage(doctorProfilePicUrl)
-                        : const AssetImage('assets/images/profile_placeholder.png') as ImageProvider,
+                const SizedBox(height: 20),
+                const Text(
+                  'Welcome Dr.',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                Text(
+                  doctorName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Welcome Dr.',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () async {
+                    await _pickTime(context, true);
+                    await _pickTime(context, false);
+                    _saveAvailability();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF1C2B4B),
                   ),
-                  Text(
-                    doctorName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () async {
-                      await _pickTime(context, true);
-                      await _pickTime(context, false);
-                      _saveAvailability();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF1C2B4B),
-                    ),
-                    child: const Text('Select Your TimeSlot'),
-                  ),
-                ],
-              ),
+                  child: const Text('Select Your TimeSlot'),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            const Text(
-              'Patients List',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            appointments.isEmpty
-                ? const Text('No patients yet.', style: TextStyle(color: Colors.grey))
-                : ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: appointments.length,
-              itemBuilder: (context, index) {
-                final patient = appointments[index];
-                return Card(
-                  elevation: 3,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      child: Text('${index + 1}'),
-                      backgroundColor: const Color(0xFF1C2B4B),
-                      foregroundColor: Colors.white,
-                    ),
-                    title: Text(patient['profiles']['name'] ?? 'Unknown'),
-                    subtitle: Text(
-                      'Date: ${patient['appointment_date']} | '
-                          'Time: ${_formatTimeForDisplay(patient['appointment_time'])}',
-                    ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Patients List',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          appointments.isEmpty
+              ? const Text('No patients yet.', style: TextStyle(color: Colors.grey))
+              : ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: appointments.length,
+            itemBuilder: (context, index) {
+              final patient = appointments[index];
+              return Card(
+                elevation: 3,
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    child: Text('${index + 1}'),
+                    backgroundColor: const Color(0xFF1C2B4B),
+                    foregroundColor: Colors.white,
                   ),
-                );
-              },
-            ),
-          ],
-        ),
+                  title: Text(patient['profiles']['name'] ?? 'Unknown'),
+                  subtitle: Text(
+                    'Date: ${patient['appointment_date']} | '
+                        'Time: ${_formatTimeForDisplay(patient['appointment_time'])}',
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 }
+
