@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'chat_screen.dart';
 import 'sidemenu.dart';
 import 'appointmentscreen.dart';// Import the AppointmentScreen
 
@@ -71,9 +72,10 @@ class AppointmentPage extends StatelessWidget {
               context,
               'Online Consultation',
                   () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Online Consultation Coming Soon!')),
-                );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ChatScreen()),
+                    );
               },
             ),
           ],

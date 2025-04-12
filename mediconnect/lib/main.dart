@@ -4,7 +4,10 @@ import 'package:mediconnect/loginpage.dart';
 import 'package:mediconnect/signup.dart';
 import 'package:mediconnect/userchoice.dart';
 import 'package:mediconnect/appointmentpagewithdrawer.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'ChatProvider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,9 +17,15 @@ Future<void> main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1ZXZvbG1keGdubmFvZmdqaXFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMTEwMjYsImV4cCI6MjA1Nzg4NzAyNn0.VBQvFIeeQjknfQmPDgkjesMf-2Jx8ulzGqLn7qnsUFs',
   );
 
-  runApp(const MediConnectApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+      ],
+      child: const MediConnectApp(),
+    ),
+  );
 }
-
 class MediConnectApp extends StatelessWidget {
   const MediConnectApp({Key? key}) : super(key: key);
 
