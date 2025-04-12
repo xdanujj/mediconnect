@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mediconnect/doctorprofile.dart';
-import 'package:mediconnect/doctordashboard.dart'; // Ensure this page exists
+import 'package:mediconnect/doctordashboard.dart';
 import 'package:mediconnect/appointment.dart';
 
 class UserChoicePage extends StatelessWidget {
+  const UserChoicePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,12 +25,13 @@ class UserChoicePage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
           child: Column(
             children: [
-              _buildDoctorOption(context), // Use a separate method for Doctor
+              _buildDoctorOption(context),
               const SizedBox(height: 40),
               _buildOptionButton(
                 context,
                 imagePath: 'assets/patient.jpg',
                 title: 'I am a Patient',
+                role: 'patient',
                 nextPage: AppointmentPage(),
               ),
             ],
@@ -82,6 +85,12 @@ class UserChoicePage extends StatelessWidget {
                 final user = Supabase.instance.client.auth.currentUser;
                 if (user == null) return;
 
+                // 👇 Update role in Supabase profiles table
+                await Supabase.instance.client
+                    .from('profiles')
+                    .update({'roles': 'doctor'})
+                    .eq('id', user.id);
+
                 final doctorResponse = await Supabase.instance.client
                     .from('doctors')
                     .select('id')
@@ -89,16 +98,14 @@ class UserChoicePage extends StatelessWidget {
                     .maybeSingle();
 
                 if (doctorResponse != null) {
-                  // Doctor profile exists, navigate to DoctorDashboardScreen
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => DoctorDashboardScreen()),
+                    MaterialPageRoute(builder: (_) => DoctorDashboardScreen()),
                   );
                 } else {
-                  // No profile, navigate to DoctorProfileScreen
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => DoctorProfileScreen()),
+                    MaterialPageRoute(builder: (_) => DoctorProfileScreen()),
                   );
                 }
               },
@@ -113,7 +120,8 @@ class UserChoicePage extends StatelessWidget {
     );
   }
 
-  Widget _buildOptionButton(BuildContext context, {required String imagePath, required String title, required Widget nextPage}) {
+  Widget _buildOptionButton(BuildContext context,
+      {required String imagePath, required String title, required String role, required Widget nextPage}) {
     double screenHeight = MediaQuery.of(context).size.height;
 
     return Container(
@@ -153,10 +161,19 @@ class UserChoicePage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () {
+              onPressed: () async {
+                final user = Supabase.instance.client.auth.currentUser;
+                if (user == null) return;
+
+                // 👇 Update role in Supabase profiles table
+                await Supabase.instance.client
+                    .from('profiles')
+                    .update({'roles': role})
+                    .eq('id', user.id);
+
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => nextPage),
+                  MaterialPageRoute(builder: (_) => nextPage),
                 );
               },
               child: Text(

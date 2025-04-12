@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mediconnect/appointment.dart';
+import 'package:mediconnect/doctordashboard.dart';
 import 'package:mediconnect/supabaseservices.dart';
+import 'package:mediconnect/userchoice.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -10,8 +14,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final SupabaseService supabaseService = SupabaseService();
+  final supabase = Supabase.instance.client;
 
-  // Login Function
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  // 🔐 Login Function with Role Checking
   Future<void> loginUser() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
@@ -23,27 +31,64 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    try {
-      // Perform Sign In using Supabase
-      final result = await supabaseService.signIn(email, password);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-      if (result != null && result == "Login successful") {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Login Successful!")),
-        );
-        // ✅ Navigate to home screen after successful login
-        Navigator.pushReplacementNamed(context, '/userchoice');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result ?? "Login failed. Please try again.")),
-        );
+    try {
+      final result = await supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      if (result.user != null) {
+        await checkUserRole(result.user!.id);
       }
+    } on AuthException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("An error occurred: $e")),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
+
+  // 🧠 Check User Role After Login
+  Future<void> checkUserRole(String userId) async {
+    final response = await Supabase.instance.client
+        .from('profiles')
+        .select('roles')
+        .eq('id', userId)
+        .single();
+
+    if (response['roles'] == 'patient') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => AppointmentPage()),
+      );
+    } else if (response['roles'] == 'doctor') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => DoctorDashboardScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => UserChoicePage()),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -80,8 +125,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         backgroundColor: const Color(0xFF1C2B4B),
                         minimumSize: const Size(double.infinity, 50),
                       ),
-                      onPressed: loginUser,
-                      child: const Text("Log In", style: TextStyle(color: Colors.white)),
+                      onPressed: _isLoading ? null : loginUser,
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text("Log In", style: TextStyle(color: Colors.white)),
                     ),
                     TextButton(
                       onPressed: () {
