@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mediconnect/supabaseservices.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'HealthArticles.dart';
 
 class SideMenu extends StatefulWidget {
   @override
@@ -77,7 +78,13 @@ class _SideMenuState extends State<SideMenu> {
                 color: Color(0xFF1C2B4B),
               ),
             ),
-            buildMenuItem(Icons.article_outlined, 'Health Articles', () {}),
+            buildMenuItem(Icons.article_outlined, 'Health Articles', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HealthArticlesPage()),
+              );
+            }),
+
             buildMenuItem(Icons.receipt_long, 'Prescriptions', () {}),
             buildMenuItem(Icons.help_outline, 'Help', () {}),
             buildMenuItem(Icons.info_outline, 'About Us', () {}),
