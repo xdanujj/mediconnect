@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mediconnect/ProfilepageDoc.dart';
+import 'package:mediconnect/DoctorInputPrescriptionPage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DoctorDashboardScreen extends StatefulWidget {
@@ -175,8 +176,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final response = await Supabase.instance.client
           .from('appointments')
-          .select('patient_id, appointment_date, appointment_time, profiles(name)')
+          .select('id, patient_id, appointment_date, appointment_time, profiles(name)')
           .eq('doctor_id', user.id)
+          .eq('status', 'pending')
           .order('appointment_date', ascending: true);
 
       setState(() {
@@ -184,6 +186,23 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (error) {
       print('Error fetching appointments: $error');
+    }
+  }
+
+  Future<void> _markAsVisited(String appointmentId) async {
+    try {
+      await Supabase.instance.client
+          .from('appointments')
+          .update({'status': 'visited'})
+          .eq('id', appointmentId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Patient marked as visited!')),
+      );
+
+      _fetchAppointments(); // Refresh the list
+    } catch (error) {
+      print('Error marking as visited: $error');
     }
   }
 
@@ -266,17 +285,57 @@ class _HomeScreenState extends State<HomeScreen> {
               final patient = appointments[index];
               return Card(
                 elevation: 3,
-                margin: const EdgeInsets.symmetric(vertical: 8),
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                 child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                   leading: CircleAvatar(
                     child: Text('${index + 1}'),
                     backgroundColor: const Color(0xFF1C2B4B),
                     foregroundColor: Colors.white,
                   ),
                   title: Text(patient['profiles']['name'] ?? 'Unknown'),
-                  subtitle: Text(
-                    'Date: ${patient['appointment_date']} | '
-                        'Time: ${_formatTimeForDisplay(patient['appointment_time'])}',
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Date: ${patient['appointment_date']} | Time: ${_formatTimeForDisplay(patient['appointment_time'])}',
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _markAsVisited(patient['id']),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1C2B4B),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              child: const Text('Visited', style: TextStyle(fontSize: 12)),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const DoctorPrescriptionInputPage(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              child: const Text('Prescription', style: TextStyle(fontSize: 12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -287,4 +346,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
