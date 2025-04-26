@@ -84,7 +84,6 @@ class _SideMenuState extends State<SideMenu> {
                 MaterialPageRoute(builder: (context) => const HealthArticlesPage()),
               );
             }),
-
             buildMenuItem(Icons.receipt_long, 'Prescriptions', () {}),
             buildMenuItem(Icons.help_outline, 'Help', () {}),
             buildMenuItem(Icons.info_outline, 'About Us', () {}),

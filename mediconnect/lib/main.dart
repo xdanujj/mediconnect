@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mediconnect/supabaseservices.dart';
 import 'package:mediconnect/loginpage.dart';
@@ -6,8 +7,10 @@ import 'package:mediconnect/userchoice.dart';
 import 'package:mediconnect/appointmentpagewithdrawer.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mediconnect/ChatProvider.dart';
 
-import 'ChatProvider.dart';
+// WelcomeScreen file (we'll create it next)
+import 'package:mediconnect/welcomescreen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +29,7 @@ Future<void> main() async {
     ),
   );
 }
+
 class MediConnectApp extends StatelessWidget {
   const MediConnectApp({Key? key}) : super(key: key);
 
@@ -37,7 +41,7 @@ class MediConnectApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const AuthWrapper(),
+      home: WelcomeScreen(), // <-- Starting with WelcomeScreen now
       routes: {
         '/login': (context) => LoginScreen(),
         '/signup': (context) => SignUpScreen(),
@@ -48,6 +52,7 @@ class MediConnectApp extends StatelessWidget {
   }
 }
 
+// This will handle checking if user is logged in or not
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({Key? key}) : super(key: key);
 
@@ -73,14 +78,3 @@ class AuthWrapper extends StatelessWidget {
     );
   }
 }
-
- /*
-import 'package:flutter/material.dart';
-
-import 'AppointmentScreen.dart';
-
-void main() {
-  runApp(MaterialApp(home: AppointmentScreen()));
-}
-
-  */

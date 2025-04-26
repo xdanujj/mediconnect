@@ -3,7 +3,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'PendingApprovalScreen.dart';
 import 'doctordashboard.dart';
+
 
 class DoctorProfileScreen extends StatefulWidget {
   @override
@@ -127,25 +129,40 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
         certificateUrl = await _uploadFile(_certificateFile!, 'certifications', 'pdf');
       }
 
-      // ✅ Insert Data into 'doctors' Table with Description
+      // ✅ Insert Data into 'doctors' Table with certificate_status = pending
       await Supabase.instance.client.from('doctors').upsert({
         'id': user.id,
         'speciality': _selectedSpeciality,
-        'description': _descriptionController.text.trim(), // ✅ Storing Description
+        'description': _descriptionController.text.trim(),
         'profile_image': imageUrl,
         'certificate_url': certificateUrl,
+        'certificate_status': 'pending', // ✨ Add this
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile submitted! Redirecting to dashboard.")),
+        const SnackBar(content: Text("Profile submitted! Checking approval status...")),
       );
 
-      Future.delayed(const Duration(seconds: 2), () {
+      // ✅ NOW FETCH certificate_status
+      final response = await Supabase.instance.client
+          .from('doctors')
+          .select('certificate_status')
+          .eq('id', user.id)
+          .single();
+
+      final status = response['certificate_status'];
+
+      if (status == 'approved') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => DoctorDashboardScreen()),
         );
-      });
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PendingApprovalScreen()), // You will make this simple page
+        );
+      }
 
     } catch (error) {
       print("Error during profile submission: $error");
@@ -154,6 +171,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
