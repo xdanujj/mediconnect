@@ -29,6 +29,8 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   http: ^0.13.5
+  printing: ^5.4.0
+  pdf: ^3.10.4
   flutter_datetime_picker: ^1.5.1
   flutter:
     sdk: flutter

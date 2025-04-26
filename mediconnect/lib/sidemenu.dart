@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mediconnect/supabaseservices.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'HealthArticles.dart';
+import 'Prescriptions.dart'; // ✅ Import Prescription Page
 
 class SideMenu extends StatefulWidget {
   @override
@@ -19,12 +20,10 @@ class _SideMenuState extends State<SideMenu> {
     fetchUserData();
   }
 
-  // ✅ Fetch User Data from Profiles Table
   Future<void> fetchUserData() async {
     final user = supabaseService.getCurrentUser();
     if (user != null) {
       try {
-        // Fetch profile details from the 'profiles' table
         final userDetails = await Supabase.instance.client
             .from('profiles')
             .select('name, email')
@@ -84,7 +83,12 @@ class _SideMenuState extends State<SideMenu> {
                 MaterialPageRoute(builder: (context) => const HealthArticlesPage()),
               );
             }),
-            buildMenuItem(Icons.receipt_long, 'Prescriptions', () {}),
+            buildMenuItem(Icons.receipt_long, 'Prescriptions', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PrescriptionPage()), // ✅ Navigate to PrescriptionPage
+              );
+            }),
             buildMenuItem(Icons.help_outline, 'Help', () {}),
             buildMenuItem(Icons.info_outline, 'About Us', () {}),
             const Divider(),
