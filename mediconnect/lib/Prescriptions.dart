@@ -1,27 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // <-- Added import
 
-class PrescriptionPage extends StatelessWidget {
+class PrescriptionPage extends StatefulWidget {
   const PrescriptionPage({Key? key}) : super(key: key);
 
-  final List<Map<String, String>> prescriptions = const [
-    {"Medicine": "Aspirin", "Dosage": "75 mg (Once a day)", "Timing": "After Lunch (AL)"},
-    {"Medicine": "Dolo 650", "Dosage": "650 mg (Twice a day)", "Timing": "After Breakfast & Dinner (AB, AD)"},
-    {"Medicine": "Cetirizine", "Dosage": "10 mg (Once a day)", "Timing": "Before Sleep (BS)"},
-    {"Medicine": "Paracetamol", "Dosage": "500 mg (Three times a day)", "Timing": "After Meals"},
-    {"Medicine": "Ibuprofen", "Dosage": "400 mg (Twice a day)", "Timing": "After Breakfast & Dinner"},
-    {"Medicine": "Amoxicillin", "Dosage": "250 mg (Three times a day)", "Timing": "After Meals"},
-    {"Medicine": "Pantoprazole", "Dosage": "40 mg (Once a day)", "Timing": "Before Breakfast"},
-    {"Medicine": "Vitamin D3", "Dosage": "60000 IU (Once a week)", "Timing": "After Lunch"},
-    {"Medicine": "Azithromycin", "Dosage": "500 mg (Once a day)", "Timing": "After Lunch"},
-    {"Medicine": "Levocetirizine", "Dosage": "5 mg (Once a day)", "Timing": "Before Sleep"},
-    {"Medicine": "Metformin", "Dosage": "500 mg (Twice a day)", "Timing": "After Breakfast & Dinner"},
-    {"Medicine": "Atorvastatin", "Dosage": "10 mg (Once a day)", "Timing": "Before Sleep"},
-    {"Medicine": "Losartan", "Dosage": "50 mg (Once a day)", "Timing": "After Breakfast"},
-    {"Medicine": "Omeprazole", "Dosage": "20 mg (Once a day)", "Timing": "Before Breakfast"},
-    {"Medicine": "Ciprofloxacin", "Dosage": "500 mg (Twice a day)", "Timing": "After Meals"},
-  ];
+  @override
+  _PrescriptionPageState createState() => _PrescriptionPageState();
+}
+
+class _PrescriptionPageState extends State<PrescriptionPage> {
+  List<Map<String, dynamic>> prescriptions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPrescriptions();
+  }
+
+  Future<void> fetchPrescriptions() async {
+    final response = await Supabase.instance.client
+        .from('prescriptions')
+        .select('medicine, dosage, timing');
+
+    setState(() {
+      prescriptions = List<Map<String, dynamic>>.from(response);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +65,9 @@ class PrescriptionPage extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SingleChildScrollView(
+              child: prescriptions.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
                 scrollDirection: Axis.vertical,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -83,9 +91,9 @@ class PrescriptionPage extends StatelessWidget {
                     ],
                     rows: prescriptions.map((prescription) {
                       return DataRow(cells: [
-                        DataCell(Text(prescription["Medicine"]!)),
-                        DataCell(Text(prescription["Dosage"]!)),
-                        DataCell(Text(prescription["Timing"]!)),
+                        DataCell(Text(prescription["medicine"] ?? '')),
+                        DataCell(Text(prescription["dosage"] ?? '')),
+                        DataCell(Text(prescription["timing"] ?? '')),
                       ]);
                     }).toList(),
                   ),
@@ -143,9 +151,9 @@ class PrescriptionPage extends StatelessWidget {
               pw.Table.fromTextArray(
                 headers: ['Medicine', 'Dosage & Frequency', 'Timing'],
                 data: prescriptions.map((item) => [
-                  item['Medicine'],
-                  item['Dosage'],
-                  item['Timing'],
+                  item['medicine'] ?? '',
+                  item['dosage'] ?? '',
+                  item['timing'] ?? '',
                 ]).toList(),
                 headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                 cellAlignment: pw.Alignment.centerLeft,

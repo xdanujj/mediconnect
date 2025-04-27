@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:mediconnect/supabaseservices.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'HealthArticles.dart';
-import 'Prescriptions.dart'; // ✅ Import Prescription Page
+import 'Prescriptions.dart';
+import 'HelpPage.dart';
+import 'AboutUs.dart';
+import 'ProfileScreen.dart'; // ✅ Import the ProfileScreen
 
 class SideMenu extends StatefulWidget {
   @override
@@ -77,6 +80,17 @@ class _SideMenuState extends State<SideMenu> {
                 color: Color(0xFF1C2B4B),
               ),
             ),
+            buildMenuItem(Icons.person_outline, 'Profile', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfileScreen(
+                    name: displayName,
+                    email: email,
+                  ),
+                ),
+              );
+            }),
             buildMenuItem(Icons.article_outlined, 'Health Articles', () {
               Navigator.push(
                 context,
@@ -86,11 +100,21 @@ class _SideMenuState extends State<SideMenu> {
             buildMenuItem(Icons.receipt_long, 'Prescriptions', () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const PrescriptionPage()), // ✅ Navigate to PrescriptionPage
+                MaterialPageRoute(builder: (context) => const PrescriptionPage()),
               );
             }),
-            buildMenuItem(Icons.help_outline, 'Help', () {}),
-            buildMenuItem(Icons.info_outline, 'About Us', () {}),
+            buildMenuItem(Icons.help_outline, 'Help', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpPage()),
+              );
+            }),
+            buildMenuItem(Icons.info_outline, 'About Us', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AboutUsPage()),
+              );
+            }),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),

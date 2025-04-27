@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'doctordashboard.dart';
 
 class DoctorPrescriptionInputPage extends StatefulWidget {
   const DoctorPrescriptionInputPage({Key? key}) : super(key: key);
@@ -26,18 +29,43 @@ class _DoctorPrescriptionInputPageState extends State<DoctorPrescriptionInputPag
     setState(() {});
   }
 
-  void savePrescriptions() {
-    // You can modify this function to save to Supabase or your backend
+  Future<void> savePrescriptions() async {
+    bool hasSaved = false; // To track if at least one prescription was saved
+
     for (var prescription in prescriptions) {
-      print("Medicine: ${prescription['Medicine']!.text}");
-      print("Dosage: ${prescription['Dosage']!.text}");
-      print("Timing: ${prescription['Timing']!.text}");
-      print('---');
+      final medicine = prescription['Medicine']!.text.trim();
+      final dosage = prescription['Dosage']!.text.trim();
+      final timing = prescription['Timing']!.text.trim();
+
+      if (medicine.isNotEmpty && dosage.isNotEmpty && timing.isNotEmpty) {
+        try {
+          await Supabase.instance.client.from('prescriptions').insert({
+            'medicine': medicine,
+            'dosage': dosage,
+            'timing': timing,
+          });
+
+          hasSaved = true;
+        } catch (error) {
+          print('Error saving prescription: $error');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error saving prescription')),
+          );
+        }
+      }
     }
-    // Show a simple success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Prescriptions saved successfully!')),
-    );
+
+    if (hasSaved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Prescription saved successfully!')),
+      );
+
+      // Navigate to Dashboard page after successful save
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => DoctorDashboardScreen()), // Make sure you have DashboardPage created
+      );
+    }
   }
 
   @override
@@ -146,6 +174,7 @@ class _DoctorPrescriptionInputPageState extends State<DoctorPrescriptionInputPag
                     onPressed: addPrescriptionRow,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white, // <-- White text
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -159,6 +188,7 @@ class _DoctorPrescriptionInputPageState extends State<DoctorPrescriptionInputPag
                     onPressed: savePrescriptions,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
+                      foregroundColor: Colors.white, // <-- White text
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
