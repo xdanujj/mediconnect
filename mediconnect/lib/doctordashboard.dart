@@ -1,45 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:mediconnect/ProfilepageDoc.dart';
 import 'package:mediconnect/DoctorInputPrescriptionPage.dart';
-import 'package:mediconnect/doctorprofile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 class DoctorDashboardScreen extends StatefulWidget {
   @override
   _DoctorDashboardScreenState createState() => _DoctorDashboardScreenState();
 }
 
 class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    HomeScreen(),
-    ProfileScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Color(0xFF1C2B4B),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1C2B4B),
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () async {
+              final shouldLogout = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Confirm Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Logout', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+
+              if (shouldLogout == true) {
+                await Supabase.instance.client.auth.signOut();
+                Navigator.of(context).pushReplacementNamed('/login');
+              }
+            },
           ),
         ],
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
       ),
+      body: HomeScreen(),
     );
   }
 }
@@ -160,6 +165,24 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       initialTime: initialTime,
       helpText: isStart ? 'Select Start Time' : 'Select End Time',
+      initialEntryMode: TimePickerEntryMode.input,  // <<< THIS makes it look like your UI!
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color(0xFF1C2B4B), // Customize color
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Color(0xFF1C2B4B), // Button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (pickedTime != null) {
@@ -168,6 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
+
 
   Future<void> _fetchAppointments() async {
     try {
@@ -200,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(content: Text('Patient marked as visited!')),
       );
 
-      _fetchAppointments(); // Refresh the list
+      _fetchAppointments();
     } catch (error) {
       print('Error marking as visited: $error');
     }
@@ -221,6 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: double.infinity,
@@ -270,77 +295,87 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Patients List',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Patients List',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(height: 10),
           appointments.isEmpty
-              ? const Text('No patients yet.', style: TextStyle(color: Colors.grey))
-              : ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: appointments.length,
-            itemBuilder: (context, index) {
-              final patient = appointments[index];
-              return Card(
-                elevation: 3,
-                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                  leading: CircleAvatar(
-                    child: Text('${index + 1}'),
-                    backgroundColor: const Color(0xFF1C2B4B),
-                    foregroundColor: Colors.white,
-                  ),
-                  title: Text(patient['profiles']['name'] ?? 'Unknown'),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Date: ${patient['appointment_date']} | Time: ${_formatTimeForDisplay(patient['appointment_time'])}',
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => _markAsVisited(patient['id']),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1C2B4B),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+              ? const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Text('No patients yet.', style: TextStyle(color: Colors.grey)),
+            ),
+          )
+              : SizedBox(
+            height: 500, // <-- give fixed height for the list
+            child: ListView.builder(
+              itemCount: appointments.length,
+              itemBuilder: (context, index) {
+                final patient = appointments[index];
+                return Card(
+                  elevation: 3,
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                    leading: CircleAvatar(
+                      child: Text('${index + 1}'),
+                      backgroundColor: const Color(0xFF1C2B4B),
+                      foregroundColor: Colors.white,
+                    ),
+                    title: Text(patient['profiles']['name'] ?? 'Unknown'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Date: ${patient['appointment_date']} | Time: ${_formatTimeForDisplay(patient['appointment_time'])}',
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => _markAsVisited(patient['id']),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1C2B4B),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                ),
+                                child: const Text('Visited', style: TextStyle(fontSize: 12)),
                               ),
-                              child: const Text('Visited', style: TextStyle(fontSize: 12)),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const DoctorPrescriptionInputPage(),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const DoctorPrescriptionInputPage(),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                ),
+                                child: const Text('Prescription', style: TextStyle(fontSize: 12)),
                               ),
-                              child: const Text('Prescription', style: TextStyle(fontSize: 12)),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
+          const SizedBox(height: 20),
         ],
       ),
     );

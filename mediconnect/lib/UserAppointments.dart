@@ -33,6 +33,7 @@ class _UserAppointmentsPageState extends State<UserAppointmentsPage> {
     final response = await supabase
         .from('appointments')
         .select('''
+          id,
           appointment_date,
           appointment_time,
           doctors (
@@ -44,6 +45,7 @@ class _UserAppointmentsPageState extends State<UserAppointmentsPage> {
           )
         ''')
         .eq('patient_id', userId)
+        .neq('status', 'cancelled')  // Exclude cancelled appointments
         .order('appointment_date');
 
     if (mounted) {
@@ -51,6 +53,52 @@ class _UserAppointmentsPageState extends State<UserAppointmentsPage> {
         appointments = List<Map<String, dynamic>>.from(response);
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> cancelAppointment(Map<String, dynamic> appointment) async {
+    final shouldCancel = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Appointment'),
+        content: const Text('Do you really want to cancel this appointment?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldCancel == true) {
+      final appointmentId = appointment['id'];
+
+      try {
+        await supabase
+            .from('appointments')
+            .update({'status': 'cancelled'})
+            .eq('id', appointmentId);
+
+        if (mounted) {
+          setState(() {
+            appointments.remove(appointment);
+          });
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Appointment cancelled successfully')),
+        );
+      } catch (error) {
+        debugPrint('Error cancelling appointment: $error');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to cancel appointment')),
+        );
+      }
     }
   }
 
@@ -95,8 +143,7 @@ class _UserAppointmentsPageState extends State<UserAppointmentsPage> {
               final time = appointment['appointment_time'];
 
               return Container(
-                margin: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.black,
@@ -119,8 +166,7 @@ class _UserAppointmentsPageState extends State<UserAppointmentsPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 doctorName,
@@ -152,7 +198,7 @@ class _UserAppointmentsPageState extends State<UserAppointmentsPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "Your Appointment has been scheduled on ${date.toString().split('T')[0]}\nfor ${time.toString().substring(0, 5)} slot",
+                        "Your appointment has been scheduled on ${date.toString().split('T')[0]}\nfor ${time.toString().substring(0, 5)} slot",
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white,
@@ -163,9 +209,7 @@ class _UserAppointmentsPageState extends State<UserAppointmentsPage> {
                     const SizedBox(height: 12),
                     Center(
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Cancel appointment logic
-                        },
+                        onPressed: () => cancelAppointment(appointment),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent,
                           shape: RoundedRectangleBorder(
@@ -182,7 +226,6 @@ class _UserAppointmentsPageState extends State<UserAppointmentsPage> {
                         ),
                       ),
                     ),
-
                   ],
                 ),
               );

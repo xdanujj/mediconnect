@@ -63,7 +63,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
   }
 }
 
-// ✅ Home Page Content
+// ✅ Home Page Content (without search)
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
 
@@ -73,28 +73,7 @@ class HomeContent extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 8,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: const TextField(
-              decoration: InputDecoration(
-                hintText: 'Search For Doctors',
-                prefixIcon: Icon(Icons.search),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.all(12.0),
-              ),
-            ),
-          ),
-          const SizedBox(height: 75),
+          const SizedBox(height: 75), // Added some spacing after removing search
           _buildOptionCard(
             context,
             'Book Your Appointment!',
