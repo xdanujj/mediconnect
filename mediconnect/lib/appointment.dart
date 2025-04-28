@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mediconnect/DoctorListPage.dart';
 import 'chat_screen.dart';
 import 'sidemenu.dart';
 import 'appointmentscreen.dart';
@@ -113,7 +112,7 @@ class HomeContent extends StatelessWidget {
                 () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => DoctorListPage()),
+                MaterialPageRoute(builder: (context) => ChatScreen()),
               );
             },
           ),
