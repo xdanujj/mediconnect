@@ -24,16 +24,16 @@ class _DoctorListPageState extends State<DoctorListPage> {
     setState(() => isLoading = true);
 
     try {
-      // 1) call .select() with no generic
-      // 2) await it directly (no .execute())
+      // Fetch from doctors + join profiles to get doctor's name
       final raw = await supabase
           .from('doctors')
-          .select();            // <-- no <…>()
+          .select('''
+            id,
+            specialty,
+            profiles ( name, email )
+          ''');
 
-
-      // raw is PostgrestList, i.e. List<dynamic>
-      final List<Map<String, dynamic>> data =
-      (raw as List<dynamic>)
+      final List<Map<String, dynamic>> data = (raw as List<dynamic>)
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList();
 
@@ -57,32 +57,38 @@ class _DoctorListPageState extends State<DoctorListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Available Doctors')),
+      appBar: AppBar(title: const Text('Available Doctors')),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : doctors.isEmpty
-          ? Center(child: Text('No doctors available for video consultation.'))
+          ? const Center(child: Text('No doctors available for video consultation.'))
           : ListView.builder(
         itemCount: doctors.length,
         itemBuilder: (ctx, i) {
           final doc = doctors[i];
-          final id  = doc['id'];
+          final id = doc['id'];
+          final profile = doc['profiles'];
+          final doctorName = profile != null ? profile['name'] ?? 'Unknown' : 'Unknown';
+          final specialty = doc['specialty'] ?? 'General Physician';
+
           return Card(
-            margin: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
             child: ListTile(
-              leading: CircleAvatar(child: Icon(Icons.person)),
-              title: Text(doc['name'] ?? 'Unknown'),
-              subtitle: Text(doc['specialization'] ?? 'General Physician'),
+              leading: const CircleAvatar(child: Icon(Icons.person)),
+              title: Text(doctorName),
+              subtitle: Text(specialty),
               trailing: ElevatedButton(
-                child: Text('Video Call'),
+                child: const Text('Video Call'),
                 onPressed: id != null
                     ? () {
-                  final channel =
-                      'channel_${id}_${supabase.auth.currentUser!.id}';
+                  final channel = 'channel_${id}_${supabase.auth.currentUser!.id}';
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => VideoCallPage(channelName: channel),
+                      builder: (_) => VideoCallPage(
+                        channelName: channel,
+                        doctorId: id,
+                      ),
                     ),
                   );
                 }

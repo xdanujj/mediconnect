@@ -1,11 +1,14 @@
 // VideoCallPage.dart
+
 import 'package:flutter/material.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
-import 'package:agora_rtc_engine/agora_rtc_engine.dart' as agora;
+import 'package:supabase_flutter/supabase_flutter.dart'; // make sure this is imported
 
 class VideoCallPage extends StatefulWidget {
   final String channelName;
-  const VideoCallPage({Key? key, required this.channelName}) : super(key: key);
+  final String doctorId; // Pass the doctor's UUID
+
+  const VideoCallPage({Key? key, required this.channelName, required this.doctorId}) : super(key: key);
 
   @override
   _VideoCallPageState createState() => _VideoCallPageState();
@@ -15,36 +18,74 @@ class _VideoCallPageState extends State<VideoCallPage> {
   late final RtcEngine _engine;
   bool _joined = false;
   int? _remoteUid;
+
+  String? _doctorName;
+  String? _doctorProfileUrl;
+
   static const _appId = '4f9cfcdb1c6d42be8c188fda9a007da7';
+  static const _tempToken = null; // If App Certificate disabled, keep null
 
   @override
   void initState() {
     super.initState();
+    _fetchDoctorDetails();
     _initAgora();
   }
 
-  /// TODO: implement your token fetch logic
-  Future<String> fetchRtcToken(String channel) async {
-    // e.g. call your backend or Supabase Function
-    throw UnimplementedError('Fetch token from server');
+  Future<void> _fetchDoctorDetails() async {
+    try {
+      // Fetch doctor's name from profiles
+      final profileResponse = await Supabase.instance.client
+          .from('profiles')
+          .select('name')
+          .eq('id', widget.doctorId)
+          .maybeSingle();
+
+      // Fetch doctor's profile image from doctors table
+      final doctorResponse = await Supabase.instance.client
+          .from('doctors')
+          .select('profile_image')
+          .eq('id', widget.doctorId)
+          .maybeSingle();
+
+      setState(() {
+        _doctorName = profileResponse?['name'] as String?;
+        _doctorProfileUrl = doctorResponse?['profile_image'] as String?;
+      });
+    } catch (e) {
+      print('Error fetching doctor details: $e');
+    }
   }
 
   Future<void> _initAgora() async {
     _engine = createAgoraRtcEngine();
     await _engine.initialize(RtcEngineContext(appId: _appId));
-    _engine.registerEventHandler(RtcEngineEventHandler(
-      onJoinChannelSuccess: (connection, elapsed) => setState(() => _joined = true),
-      onUserJoined: (connection, uid, elapsed) => setState(() => _remoteUid = uid),
-      onUserOffline: (connection, uid, reason) => setState(() => _remoteUid = null),
-    ));
-    await _engine.enableVideo();
 
-    // choose one:
-    final token = await fetchRtcToken(widget.channelName); // secure
-    // final token = null; // if App Certificate disabled for testing
+    _engine.registerEventHandler(
+      RtcEngineEventHandler(
+        onJoinChannelSuccess: (connection, elapsed) {
+          setState(() {
+            _joined = true;
+          });
+        },
+        onUserJoined: (connection, uid, elapsed) {
+          setState(() {
+            _remoteUid = uid;
+          });
+        },
+        onUserOffline: (connection, uid, reason) {
+          setState(() {
+            _remoteUid = null;
+          });
+        },
+      ),
+    );
+
+    await _engine.enableVideo();
+    await _engine.startPreview();
 
     await _engine.joinChannel(
-      token: token,
+      token: _tempToken,
       channelId: widget.channelName,
       uid: 0,
       options: const ChannelMediaOptions(),
@@ -61,29 +102,84 @@ class _VideoCallPageState extends State<VideoCallPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Call: ${widget.channelName}')),
+      appBar: AppBar(title: Text('Channel: ${widget.channelName}')),
       body: Stack(
         children: [
-          if (_joined)
-            AgoraVideoView(
-              controller: VideoViewController(
-                rtcEngine: _engine,
-                canvas: const VideoCanvas(uid: 0),
-              ),
-            )
-          else
-            const Center(child: CircularProgressIndicator()),
-
-          if (_remoteUid != null)
-            AgoraVideoView(
-              controller: VideoViewController.remote(
-                rtcEngine: _engine,
-                canvas: VideoCanvas(uid: _remoteUid),
-                connection: RtcConnection(channelId: widget.channelName),
-              ),
-            ),
+          _renderRemoteVideo(),
+          _renderLocalPreview(),
         ],
       ),
     );
+  }
+
+  Widget _renderLocalPreview() {
+    if (_joined) {
+      return Positioned(
+        bottom: 20,
+        right: 20,
+        width: 120,
+        height: 160,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.blueAccent),
+          ),
+          child: AgoraVideoView(
+            controller: VideoViewController(
+              rtcEngine: _engine,
+              canvas: const VideoCanvas(uid: 0),
+            ),
+          ),
+        ),
+      );
+    } else {
+      return const Center(child: CircularProgressIndicator());
+    }
+  }
+
+  Widget _renderRemoteVideo() {
+    if (_remoteUid != null) {
+      return Stack(
+        children: [
+          AgoraVideoView(
+            controller: VideoViewController.remote(
+              rtcEngine: _engine,
+              canvas: VideoCanvas(uid: _remoteUid),
+              connection: RtcConnection(channelId: widget.channelName),
+            ),
+          ),
+          Positioned(
+            top: 40,
+            left: 20,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  if (_doctorProfileUrl != null)
+                    CircleAvatar(
+                      backgroundImage: NetworkImage(_doctorProfileUrl!),
+                    ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _doctorName ?? 'Doctor',
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      return const Center(
+        child: Text(
+          'Waiting for the doctor to join...',
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
   }
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mediconnect/ProfilepageDoc.dart';
 import 'package:mediconnect/DoctorInputPrescriptionPage.dart';
+import 'package:mediconnect/doctorprofile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 class DoctorDashboardScreen extends StatefulWidget {
   @override
   _DoctorDashboardScreenState createState() => _DoctorDashboardScreenState();
