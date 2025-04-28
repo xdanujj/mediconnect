@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // For image picking
+import 'package:flutter/services.dart'; // For Clipboard functionality
+import 'terms_and_conditions_screen.dart'; // Import the Terms & Conditions screen
+import 'privacy_policy_screen.dart'; // Import the Privacy Policy screen
+import 'dart:io'; // For File handling
 
 class ProfileScreen extends StatefulWidget {
   final String name;
@@ -11,14 +16,26 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool isDarkMode = false;
+  File? _profileImage; // To store the selected profile image
+
+  final ImagePicker _picker = ImagePicker(); // Image picker instance
+
+  // Function to pick an image from the gallery
+  Future<void> _pickImage() async {
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.black : Color(0xFF1B3A57),
+      backgroundColor: const Color(0xFF1B3A57),
       appBar: AppBar(
-        backgroundColor: isDarkMode ? Colors.black : Color(0xFF1B3A57),
+        backgroundColor: const Color(0xFF1B3A57),
         elevation: 0,
         title: const Text('Profile', style: TextStyle(color: Colors.white)),
         centerTitle: true,
@@ -34,10 +51,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: ListView(
           children: [
             const SizedBox(height: 20),
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person, size: 60, color: Colors.grey[400]),
+            GestureDetector(
+              onTap: _pickImage, // Call the image picking function when the avatar is tapped
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.white,
+                backgroundImage: _profileImage != null
+                    ? FileImage(_profileImage!) // Display the selected image
+                    : const NetworkImage('https://via.placeholder.com/150'), // Default placeholder image
+              ),
             ),
             const SizedBox(height: 10),
             Center(
@@ -54,12 +76,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 30),
 
-            _buildSettingsItem(Icons.edit, "Edit Profile", () {}),
-            _buildDarkModeToggle(),
-            _buildSettingsItem(Icons.language, "Language", () {}),
-            _buildSettingsItem(Icons.info_outline, "About", () {}),
-            _buildSettingsItem(Icons.assignment, "Terms & Conditions", () {}),
-            _buildSettingsItem(Icons.lock_outline, "Privacy Policy", () {}),
+            _buildSettingsItem(Icons.assignment, "Terms & Conditions", () {
+              // Navigate to Terms & Conditions screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const TermsAndConditionsScreen()),
+              );
+            }),
+            _buildSettingsItem(Icons.lock_outline, "Privacy Policy", () {
+              // Navigate to Privacy Policy screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
+              );
+            }),
             _buildSettingsItem(Icons.star_border, "Rate This App", () {}),
             _buildSettingsItem(Icons.share, "Share This App", () {}),
           ],
@@ -77,28 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
           onTap: onTap,
         ),
-        Divider(color: Colors.white30, height: 1),
-      ],
-    );
-  }
-
-  Widget _buildDarkModeToggle() {
-    return Column(
-      children: [
-        ListTile(
-          leading: const Icon(Icons.dark_mode, color: Colors.white),
-          title: const Text('Mode Dark & Light', style: TextStyle(color: Colors.white, fontSize: 16)),
-          trailing: Switch(
-            value: isDarkMode,
-            onChanged: (value) {
-              setState(() {
-                isDarkMode = value;
-              });
-            },
-            activeColor: Colors.yellow,
-          ),
-        ),
-        Divider(color: Colors.white30, height: 1),
+        const Divider(color: Colors.white30, height: 1),
       ],
     );
   }

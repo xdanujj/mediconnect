@@ -89,13 +89,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             const SizedBox(height: 30),
             FadeTransition(
               opacity: _textAnimation,
-              child: const Text(
-                "Welcome to MediConnect",
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 1.2,
+              child: Center( // <-- Center the Text
+                child: const Text(
+                  "Welcome to MediConnect",
+                  textAlign: TextAlign.center, // <-- Important
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ),
             ),

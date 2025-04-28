@@ -15,7 +15,6 @@ class _AppointmentPageState extends State<AppointmentPage> {
   final List<Widget> _pages = [
     HomeContent(),
     UserAppointmentsPage(),
-    Center(child: Text('Profile Page', style: TextStyle(fontSize: 18))),
   ];
 
   void _onTabTapped(int index) {
@@ -56,14 +55,13 @@ class _AppointmentPageState extends State<AppointmentPage> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Appointment'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
   }
 }
 
-// ✅ Home Page Content (without search)
+// ✅ Home Page Content (untouched)
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
 
@@ -73,7 +71,7 @@ class HomeContent extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          const SizedBox(height: 75), // Added some spacing after removing search
+          const SizedBox(height: 75), // Spacing remains same
           _buildOptionCard(
             context,
             'Book Your Appointment!',
