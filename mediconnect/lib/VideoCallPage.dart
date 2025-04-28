@@ -1,17 +1,15 @@
-// VideoCallPage.dart
-
 import 'package:flutter/material.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // make sure this is imported
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VideoCallPage extends StatefulWidget {
   final String channelName;
-  final String doctorId; // Pass the doctor's UUID
+  final String doctorId;
 
   const VideoCallPage({Key? key, required this.channelName, required this.doctorId}) : super(key: key);
 
   @override
-  _VideoCallPageState createState() => _VideoCallPageState();
+  State<VideoCallPage> createState() => _VideoCallPageState();
 }
 
 class _VideoCallPageState extends State<VideoCallPage> {
@@ -23,7 +21,7 @@ class _VideoCallPageState extends State<VideoCallPage> {
   String? _doctorProfileUrl;
 
   static const _appId = '4f9cfcdb1c6d42be8c188fda9a007da7';
-  static const _tempToken = null; // If App Certificate disabled, keep null
+  static const _tempToken = null; // If App Certificate is disabled, keep null
 
   @override
   void initState() {
@@ -34,14 +32,12 @@ class _VideoCallPageState extends State<VideoCallPage> {
 
   Future<void> _fetchDoctorDetails() async {
     try {
-      // Fetch doctor's name from profiles
       final profileResponse = await Supabase.instance.client
           .from('profiles')
           .select('name')
           .eq('id', widget.doctorId)
           .maybeSingle();
 
-      // Fetch doctor's profile image from doctors table
       final doctorResponse = await Supabase.instance.client
           .from('doctors')
           .select('profile_image')
@@ -64,26 +60,19 @@ class _VideoCallPageState extends State<VideoCallPage> {
     _engine.registerEventHandler(
       RtcEngineEventHandler(
         onJoinChannelSuccess: (connection, elapsed) {
-          setState(() {
-            _joined = true;
-          });
+          setState(() => _joined = true);
         },
         onUserJoined: (connection, uid, elapsed) {
-          setState(() {
-            _remoteUid = uid;
-          });
+          setState(() => _remoteUid = uid);
         },
         onUserOffline: (connection, uid, reason) {
-          setState(() {
-            _remoteUid = null;
-          });
+          setState(() => _remoteUid = null);
         },
       ),
     );
 
     await _engine.enableVideo();
     await _engine.startPreview();
-
     await _engine.joinChannel(
       token: _tempToken,
       channelId: widget.channelName,
@@ -102,7 +91,7 @@ class _VideoCallPageState extends State<VideoCallPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Channel: ${widget.channelName}')),
+      appBar: AppBar(title: Text('Consulting: ${_doctorName ?? 'Doctor'}')),
       body: Stack(
         children: [
           _renderRemoteVideo(),
@@ -150,25 +139,18 @@ class _VideoCallPageState extends State<VideoCallPage> {
           Positioned(
             top: 40,
             left: 20,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  if (_doctorProfileUrl != null)
-                    CircleAvatar(
-                      backgroundImage: NetworkImage(_doctorProfileUrl!),
-                    ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _doctorName ?? 'Doctor',
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
+            child: Row(
+              children: [
+                if (_doctorProfileUrl != null)
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(_doctorProfileUrl!),
                   ),
-                ],
-              ),
+                const SizedBox(width: 8),
+                Text(
+                  _doctorName ?? 'Doctor',
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
             ),
           ),
         ],
@@ -178,6 +160,7 @@ class _VideoCallPageState extends State<VideoCallPage> {
         child: Text(
           'Waiting for the doctor to join...',
           textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey),
         ),
       );
     }

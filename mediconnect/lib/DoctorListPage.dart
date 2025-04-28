@@ -6,7 +6,7 @@ class DoctorListPage extends StatefulWidget {
   const DoctorListPage({Key? key}) : super(key: key);
 
   @override
-  _DoctorListPageState createState() => _DoctorListPageState();
+  State<DoctorListPage> createState() => _DoctorListPageState();
 }
 
 class _DoctorListPageState extends State<DoctorListPage> {
@@ -21,37 +21,37 @@ class _DoctorListPageState extends State<DoctorListPage> {
   }
 
   Future<void> fetchDoctors() async {
-    setState(() => isLoading = true);
-
     try {
-      // Fetch from doctors + join profiles to get doctor's name
+      setState(() => isLoading = true);
+
+      // Removed 'specialty' from query to avoid error
       final raw = await supabase
           .from('doctors')
           .select('''
             id,
-            specialty,
             profiles ( name, email )
           ''');
 
-      final List<Map<String, dynamic>> data = (raw as List<dynamic>)
+      final List<Map<String, dynamic>> fetchedDoctors = (raw as List<dynamic>)
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList();
 
       setState(() {
-        doctors = data;
-        isLoading = false;
+        doctors = fetchedDoctors;
       });
     } on PostgrestException catch (e) {
-      setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch doctors: ${e.message}')),
-      );
+      _showError('Failed to fetch doctors: ${e.message}');
     } catch (e) {
+      _showError('Unexpected error: $e');
+    } finally {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error: $e')),
-      );
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -61,15 +61,19 @@ class _DoctorListPageState extends State<DoctorListPage> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : doctors.isEmpty
-          ? const Center(child: Text('No doctors available for video consultation.'))
+          ? const Center(
+        child: Text('No doctors available for video consultation.'),
+      )
           : ListView.builder(
         itemCount: doctors.length,
         itemBuilder: (ctx, i) {
-          final doc = doctors[i];
-          final id = doc['id'];
-          final profile = doc['profiles'];
+          final doctor = doctors[i];
+          final id = doctor['id'];
+          final profile = doctor['profiles'];
           final doctorName = profile != null ? profile['name'] ?? 'Unknown' : 'Unknown';
-          final specialty = doc['specialty'] ?? 'General Physician';
+
+          // Since 'specialty' is not available, show default
+          const specialty = 'General Physician';
 
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
@@ -81,12 +85,12 @@ class _DoctorListPageState extends State<DoctorListPage> {
                 child: const Text('Video Call'),
                 onPressed: id != null
                     ? () {
-                  final channel = 'channel_${id}_${supabase.auth.currentUser!.id}';
+                  final channelName = 'channel_${id}_${supabase.auth.currentUser!.id}';
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => VideoCallPage(
-                        channelName: channel,
+                        channelName: channelName,
                         doctorId: id,
                       ),
                     ),
